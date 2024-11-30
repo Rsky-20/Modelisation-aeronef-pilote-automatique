@@ -18,6 +18,7 @@ from pylab import *
 from matplotlib.widgets import Slider
 import numpy as np
 import scipy.interpolate
+import os
 
 # acclération de la pesanteur (m/s^2) 
 g0=9.81
@@ -27,7 +28,7 @@ Rayon_terre=6370e3
 ft=0.3048
 
 deg=pi/180.0
-ussa76ut86=np.loadtxt('ussa76ut86.txt')
+ussa76ut86=np.loadtxt('D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data\\ussa76ut86.txt')
 #    1            2 3 4  5                6             7                           8
 # altitude (km)          temperature (K)  Pression (Pa) masse volumique (kg/m^3)  vitesse du son (m/s)
 
