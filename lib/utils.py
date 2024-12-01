@@ -266,21 +266,26 @@ class ControlAircraftModel:
         return -((Z_delta_m * m_q) / (-m_alpha * Z_delta_m + m_delta_m * Z_alpha))
     
     def open_loop(self):
-        
-        # Création du modèle état-espace complet
-        self.state_space_model = ss(self.matrix_A, self.matrix_B, self.matrix_C[1], 0)
+        self.compute_phugoid_mode()
+        # # Création du modèle état-espace complet
+        # self.state_space_model = ss(self.matrix_A, self.matrix_B, self.matrix_C[1], 0)
 
-        # Conversion en fonction de transfert
-        self.state_space_model_tf = tf(self.state_space_model)
+        # # Conversion en fonction de transfert
+        # self.state_space_model_tf = tf(self.state_space_model)
 
-        # Affichage des informations sur les pôles
-        print("\nAnalyse des pôles pour le modèle complet :")
-        self.pole_model = damp(self.state_space_model)
+        # # Affichage des informations sur les pôles
+        # print("\nAnalyse des pôles pour le modèle complet :")
+        # self.pole_model = damp(self.state_space_model)
 
-        # Utilisation de sisotool pour ajuster le gain (facultatif)
-        print("\nOuverture de sisotool pour ajuster le gain :")
-        self.gain_k = sisotool(minreal(self.state_space_model)) #, kmin=0.001, kmax=10.0, kdefault=1.0, xispec=0.7
-
+        # # Utilisation de sisotool pour ajuster le gain (facultatif)
+        # print("\nOuverture de sisotool pour ajuster le gain :")
+        # self.gain_k = sisotool(minreal(self.state_space_model)) #, kmin=0.001, kmax=10.0, kdefault=1.0, xispec=0.7*
+        sysp_v = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cpv,0)
+        sysp_g = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cpg,0)
+        sysp = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cp,0)
+        print(sysp)
+        print("Eigenvalues of Phugoid mode\n")
+        [print(round(i,5)) for i in sal.eig(self.matrix_A_phugoid)[0]]
 
     def ft_to_m(self, feet):
         """
