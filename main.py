@@ -12,10 +12,11 @@ def main():
     aircraft.display_time_process(aircraft.equilibrium_conditions)
     aircraft.display_time_process(aircraft.compute_dynamic_matrix)
     aircraft.display_time_process(aircraft.compute_control_matrix)
+    #aircraft.display_aircraft_parameters()
     #aircraft.display_equilibrium_condition_values()
-    #aircraft.display_matrix()
+    aircraft.display_matrix()
     aircraft.display_time_process(aircraft.open_loop)
-    aircraft.display_state_space_info()
+    #aircraft.display_state_space_info()
 
 
 

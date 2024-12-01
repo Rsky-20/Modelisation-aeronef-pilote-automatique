@@ -60,8 +60,8 @@ class ControlAircraftModel:
         self.Q = 0.5 * self.rho * pow(self.V_a, 2)
 
         #X,Y bras de levier distance entre F et G :  X_g - X_f
-        self.X =  self.f * self.lt - self.c * self.lt
-        self.Y =  self.F_delta - self.c * self.lt
+        self.X =  -(self.f * self.lt - self.c * self.lt)
+        self.Y =  -(self.F_delta - self.c * self.lt)
 
         self.V_eq = self.V_a #car on est pas loin du point d'équilibre 
         
@@ -106,70 +106,6 @@ class ControlAircraftModel:
     #############################################
     #   Aircraft Longitudinal Dynamics
     #############################################
-    
-    def speed_Va(self, u:float, v:float, w:float):
-        """_summary_
-
-        Args: 
-            u (float): aircraft speed on X axis
-            v (float): aircraft speed on Y axis
-            w (float): aircraft speed on Z axis
-        """
-        return math.sqrt(pow(u, 2) + pow(v, 2) + pow(w, 2))
-    
-    def speed_Va_(self, u:float, v:float, w:float, u_v:float, v_v:float, w_v:float):
-        """_summary_
-
-        Args:
-            u (float): aircraft speed on X axis
-            v (float): aircraft speed on Y axis
-            w (float): aircraft speed on Z axis
-            u_v (float): wind speed
-            v_v (float): wind speed
-            w_v (float): wind speed
-        """
-        return math.sqrt(pow(u + u_v, 2) + pow(v + v_v, 2) + pow(w + w_v, 2))
-    
-    def ald_alpha(self,u:float, w:float, u_v:float, w_v:float):
-        """_summary_
-
-        Args:
-            u (float): _description_
-            w (float): _description_
-            u_v (float): _description_
-            w_v (float): _description_
-
-        Returns:
-            _type_: _description_
-        """
-        return math.atan((w + w_v)/(u + u_v))
-    
-    def ald_beta(self,v:float, v_v:float, V_a:float):
-        """_summary_
-
-        Args:
-            v (float): _description_
-            v_v (float): _description_
-            V_a (float): aircraft speed
-
-        Returns:
-            _type_: _description_
-        """
-        return math.asin((v + v_v)/(V_a))
-    
-    def ald_beta_p(self, u:float, u_v:float, v:float, v_v:float):
-        """_summary_
-
-        Args:
-            v (float): _description_
-            v_v (float): _description_
-            V_a (float): aircraft speed
-
-        Returns:
-            _type_: _description_
-        """
-        return math.atan((v + v_v)/(u + u_v))
-    
     
     def compute_F_eq(self, rho, V_eq, S, C_x_eq, alpha_eq):
         return (0.5 * rho * pow(V_eq, 2) * S * C_x_eq) / (np.cos(alpha_eq))
@@ -226,7 +162,7 @@ class ControlAircraftModel:
         return 2 * k * C_z * C_z_alpha
     
     def compute_C_m_alpha(self, X, l_ref, C_x_alpha, alpha_eq, C_z_alpha):
-        return X/l_ref*(C_x_alpha * np.sin(alpha_eq)+C_z_alpha * np.cos(alpha_eq))
+        return (X / l_ref) * (C_x_alpha * np.sin(alpha_eq)+C_z_alpha * np.cos(alpha_eq))
     
     
     def compute_A_array(self, X_V, X_gamma, X_alpha, Z_V, Z_alpha, m_alpha, m_q, V_eq):
@@ -432,6 +368,61 @@ Analyse des pôles et caractéristiques :
     ##############################################################
             """)
 
+
+    def display_aircraft_parameters(self):
+        """
+        Affiche les paramètres de l'avion.
+        """
+        print(f"""
+##############################################################
+AIRCRAFT PARAMETERS
+--------------------------------------------------------------
+Nom de l'avion (name):                                {self.name}
+--------------------------------------------------------------
+CONSTANTS
+Gravité (g):                                         {self.g:.2f} m/s^2
+Constante de temps (tau):                            {self.tau:.2f} s
+Rayon de giration (r_g):                             {self.r_g:.2f} m
+--------------------------------------------------------------
+FLIGHT CONDITION
+Mach speed:                                          {self.mach_speed:.2f}
+Altitude (altitude):                                 {self.altitude:.2f} m
+Densité de l'air (rho):                              {self.rho:.6f} kg/m^3
+Vitesse du son (V_s):                                {self.V_s:.2f} m/s
+Vitesse aérodynamique (V_a):                         {self.V_a:.2f} m/s
+--------------------------------------------------------------
+AIRCRAFT CHARACTERISTICS
+Masse (mass):                                        {self.mass:.2f} kg
+Surface alaire de référence (S):                     {self.S:.2f} m^2
+Longueur de référence (l_ref):                       {self.l_ref:.2f} m
+Distance à l'empennage (lt):                         {self.lt:.2f} m
+Centre de gravité (c):                               {self.c:.2f}
+Moment d'inertie (I_yy):                             {self.I_yy:.2f} kg·m^2
+--------------------------------------------------------------
+AERODYNAMIC COEFFICIENTS
+C_x_0 (Coefficient de traînée à angle nul):          {self.C_x_0:.6f}
+C_z_alpha (Gradient de portance):                    {self.C_z_alpha:.6f}
+C_z_delta_m (Gradient de portance de la gouverne):   {self.C_z_delta_m:.6f}
+Déviation de l'empennage à l'équilibre (delta_m_0):  {self.delta_m_0:.6f}
+Angle d'incidence à portance nulle (alpha_0):        {self.alpha_0:.6f} rad
+Centre aérodynamique (f):                            {self.f:.2f}
+Centre aérodynamique des gouvernes (f_delta):        {self.f_delta:.2f}
+Coefficient polaire (k):                             {self.k:.6f}
+Coefficient d'amortissement de tangage (C_m_q):      {self.C_m_q:.6f}
+Coefficient de moment dû à la gouverne (C_m_delta):  {self.C_m_delta:.6f}
+F_delta:                                             {self.F_delta:.2f}
+F:                                                   {self.F:.2f}
+Pression dynamique (Q):                              {self.Q:.2f} Pa
+--------------------------------------------------------------
+LEVER ARM DISTANCES
+X (Distance entre F et G):                           {self.X:.2f} m
+Y (Distance entre F_delta et G):                     {self.Y:.2f} m
+--------------------------------------------------------------
+ÉTAT D'ÉQUILIBRE
+Vitesse d'équilibre (V_eq):                          {self.V_eq:.2f} m/s
+Gamma à l'équilibre (gamma_eq):                      {self.gamma_eq:.6f}
+##############################################################
+    """)
 
 
     
