@@ -187,7 +187,13 @@ class ControlAircraftModel:
         num_inputs = 1   # One input (delta_m)
         self.matrix_D = np.zeros((num_outputs, num_inputs))  # Zero matrix
 
-    
+    def compute_phugoid_mode(self):
+        self.matrix_A_phugoid = self.matrix_A[0:2,0:2]
+        self.matrix_B_phugoid = self.matrix_B[0:2]
+        self.Cpv = np.array([1,0])
+        self.Cpg = np.array([0,1])
+        self.Cp = np.eye((2))
+
     def compute_X_p(self, A, X, B, U):
         return np.dot(A, X) + np.dot(B, U)
        
