@@ -28,7 +28,15 @@ Rayon_terre=6370e3
 ft=0.3048
 
 deg=pi/180.0
-ussa76ut86=np.loadtxt('D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data\\ussa76ut86.txt')
+
+# Obtenir le chemin du dossier parent
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+# Construire le chemin complet vers le fichier
+file_path = os.path.join(parent_dir, 'data', 'ussa76ut86.txt')
+
+# Charger les données
+ussa76ut86 = np.loadtxt(file_path)
 #    1            2 3 4  5                6             7                           8
 # altitude (km)          temperature (K)  Pression (Pa) masse volumique (kg/m^3)  vitesse du son (m/s)
 
