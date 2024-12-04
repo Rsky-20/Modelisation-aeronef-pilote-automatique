@@ -9,8 +9,10 @@ import sys
 
 try:
     from sisopy31 import *
+    import sisopy31 as sisopy31
 except:
     from lib.sisopy31 import *
+    import lib.sisopy31 as sisopy31
 
 try:
     import atm_std
@@ -30,30 +32,59 @@ class ControlAircraftModel:
         # Flight condition 
         self.mach_speed = 1.88  # Aircraft Mach speed (relative to speed of sound)
         self.altitude = self.ft_to_m(22265)   # Aircraft cruise altitude (ft)
-        self.hgeo, self.rho, self.V_s =  atm_std.get_cte_atm(self.altitude) #hgeo = , roh = sensité de l'air, V_s = vitesse du son 
-        self.rho = float(self.rho)
-        self.V_s = float(self.V_s)
-        self.V_a = self.mach_speed * self.V_s #aerodynamic speed of the aircraft (m/s)
+        
+        if self.mach_speed == 1.88 and self.altitude == self.ft_to_m(22265):
+            self.hgeo, self.rho, self.V_s =  atm_std.get_cte_atm(self.altitude) #hgeo = , roh = sensité de l'air, V_s = vitesse du son 
+            self.rho = float(self.rho)
+            self.V_s = float(self.V_s)
+            self.V_a = self.mach_speed * self.V_s #aerodynamic speed of the aircraft (m/s)
 
-        # Aircraft Characteristics
-        self.mass = 8400        # Aircraft mass (kg)
-        self.S = 34             # Reference wing area (m^2)
-        self.l_ref = 5.24          # Reference length (m)
-        self.lt = (3/2) * self.l_ref
-        self.c = 0.52           # Center of gravity (as a percentage of total length)
-        self.I_yy = self.mass * pow(self.r_g, 2)       # Moment of inertia about the y-axis (kg·m^2)
+            # Aircraft Characteristics
+            self.mass = 8400        # Aircraft mass (kg)
+            self.S = 34             # Reference wing area (m^2)
+            self.l_ref = 5.24          # Reference length (m)
+            self.lt = (3/2) * self.l_ref
+            self.c = 0.52           # Center of gravity (as a percentage of total length)
+            self.I_yy = self.mass * pow(self.r_g, 2)       # Moment of inertia about the y-axis (kg·m^2)
 
-        # Aerodynamic Coefficients
-        self.C_x_0 = 0.0259         # Drag coefficient at zero angle of attack
-        self.C_z_alpha = 2.2    # Lift gradient coefficient w.r.t. angle of attack
-        self.C_z_delta_m = 0.32     # Lift gradient coefficient w.r.t. elevator deflection
-        self.delta_m_0 = -0.01   # Equilibrium fin deflection for null lift 
-        self.alpha_0 = 0.011    # Incidence for null lift and null fin deflection (rad)
-        self.f = 0.68          # Aerodynamique center of body and wings
-        self.f_delta = 0.9      # Aerodynamique center of fins (pitch axis)
-        self.k = 0.515           # Polar coefficient 
-        self.C_m_q = -0.255        # Pitch damping coefficient (s/rad)
-        self.C_m_delta = -1.1    # Moment coefficient w.r.t. elevator deflection
+            # Aerodynamic Coefficients
+            self.C_x_0 = 0.029         # Drag coefficient at zero angle of attack
+            self.C_z_alpha = 2.124    # Lift gradient coefficient w.r.t. angle of attack
+            self.C_z_delta_m = 0.316    # Lift gradient coefficient w.r.t. elevator deflection
+            self.delta_m_0 = -0.0017   # Equilibrium fin deflection for null lift 
+            self.alpha_0 = 0.011    # Incidence for null lift and null fin deflection (rad)
+            self.f = 0.608          # Aerodynamique center of body and wings
+            self.f_delta = 0.9      # Aerodynamique center of fins (pitch axis)
+            self.k = 0.53           # Polar coefficient 
+            self.C_m_q = -0.266        # Pitch damping coefficient (s/rad)
+            self.C_m_delta = -1.1    # Moment coefficient w.r.t. elevator deflection
+        
+        if self.mach_speed == 1.29 and self.altitude == self.ft_to_m(13105):
+            self.hgeo, self.rho, self.V_s =  atm_std.get_cte_atm(self.altitude) #hgeo = , roh = sensité de l'air, V_s = vitesse du son 
+            self.rho = float(self.rho)
+            self.V_s = float(self.V_s)
+            self.V_a = self.mach_speed * self.V_s #aerodynamic speed of the aircraft (m/s)
+
+            # Aircraft Characteristics
+            self.mass = 8400        # Aircraft mass (kg)
+            self.S = 34             # Reference wing area (m^2)
+            self.l_ref = 5.24          # Reference length (m)
+            self.lt = (3/2) * self.l_ref
+            self.c = 0.52           # Center of gravity (as a percentage of total length)
+            self.I_yy = self.mass * pow(self.r_g, 2)       # Moment of inertia about the y-axis (kg·m^2)
+
+            # Aerodynamic Coefficients
+            self.C_x_0 = 0.035         # Drag coefficient at zero angle of attack
+            self.C_z_alpha = 2.72    # Lift gradient coefficient w.r.t. angle of attack
+            self.C_z_delta_m = 0.67     # Lift gradient coefficient w.r.t. elevator deflection
+            self.delta_m_0 = -0.014   # Equilibrium fin deflection for null lift 
+            self.alpha_0 = 0.0055    # Incidence for null lift and null fin deflection (rad)
+            self.f = 0.609          # Aerodynamique center of body and wings
+            self.f_delta = 0.9      # Aerodynamique center of fins (pitch axis)
+            self.k = 0.367           # Polar coefficient 
+            self.C_m_q = -0.393        # Pitch damping coefficient (s/rad)
+            self.C_m_delta = -1.1    # Moment coefficient w.r.t. elevator deflection
+        
         self.F_delta = self.f_delta * self.lt
         self.F = self.f * self.lt
         
@@ -61,7 +92,7 @@ class ControlAircraftModel:
 
         #X,Y bras de levier distance entre F et G :  X_g - X_f
         self.X =  -(self.f * self.lt - self.c * self.lt)
-        self.Y =  -(self.F_delta - self.c * self.lt)
+        self.Y =  -(self.f_delta - self.c) * self.lt
 
         self.V_eq = self.V_a #car on est pas loin du point d'équilibre 
         
@@ -156,13 +187,14 @@ class ControlAircraftModel:
         return (F_tau * np.sin(alpha_eq)) / (m * V_eq)
     
     def compute_C_m_delta_m(self, Y, l_ref, C_x_delta_m, alpha_eq, C_z_delta_m):
-        return Y/l_ref * (C_x_delta_m * np.sin(alpha_eq) + C_z_delta_m * np.cos(alpha_eq))
+        return (Y/l_ref) * (C_x_delta_m * np.sin(alpha_eq) + C_z_delta_m * np.cos(alpha_eq))
     
     def compute_C_x_alpha(self, k, C_z, C_z_alpha):
         return 2 * k * C_z * C_z_alpha
     
     def compute_C_m_alpha(self, X, l_ref, C_x_alpha, alpha_eq, C_z_alpha):
-        return (X / l_ref) * (C_x_alpha * np.sin(alpha_eq)+C_z_alpha * np.cos(alpha_eq))
+        #(X/lref)*(Cxa*np.sin(aeq) + Cza*np.cos(aeq))
+        return (X / l_ref) * (C_x_alpha * np.sin(alpha_eq) + C_z_alpha * np.cos(alpha_eq))
     
     
     def compute_A_array(self, X_V, X_gamma, X_alpha, Z_V, Z_alpha, m_alpha, m_q, V_eq):
@@ -196,6 +228,13 @@ class ControlAircraftModel:
 
     def compute_X_p(self, A, X, B, U):
         return np.dot(A, X) + np.dot(B, U)
+    
+    def compute_teste(self):
+       self.matrix_A_teste = self.matrix_A[1:,1:]
+       self.matrix_B_teste = self.matrix_B[1:]
+       self.matrix_C_teste = np.zeros((5,1))
+       self.matrix_C_teste[2] = 1
+       self.matrix_C_teste_q = self.matrix_C_teste.T
        
         
     def equilibrium_point(self, F_p_x_eq=0, alpha_eq_0=0, epsilon=1e-6):
@@ -265,27 +304,108 @@ class ControlAircraftModel:
     def tau_z(self, Z_delta_m, m_q, m_alpha, m_delta_m, Z_alpha):
         return -((Z_delta_m * m_q) / (-m_alpha * Z_delta_m + m_delta_m * Z_alpha))
     
-    def open_loop(self):
-        self.compute_phugoid_mode()
-        # # Création du modèle état-espace complet
-        # self.state_space_model = ss(self.matrix_A, self.matrix_B, self.matrix_C[1], 0)
+    def compute_phugoid_mode(self):
+        self.matrix_A_phugoid = self.matrix_A[0:2,0:2]
+        self.matrix_B_phugoid = self.matrix_B[0:2]
+        self.C_phugoid_V = np.array([1,0])
+        self.C_phugoid_gamma = np.array([0,1])
 
+        
+    def compute_shortperiod_mode(self):
+        self.matrix_A_short_period=self.matrix_A[3:4,3:4]
+        self.matrix_B_short_period=self.matrix_B[3:4]
+        self.C_short_period_alpha = np.array([1,0])
+        self.C_short_period_q = np.array([0,1])
+        
+    def open_loop(self):
+        self.compute_teste()
+        self.compute_phugoid_mode()
+        self.compute_shortperiod_mode()
+        
+        print(self.matrix_A_teste)
+        print(self.matrix_C_teste_q)
+        # # Création du modèle état-espace complet
+        self.state_space_model = ss(self.matrix_A_teste, self.matrix_B_teste, self.matrix_C_teste_q, 0)
+
+        print("state_space : ", self.state_space_model)
+        
         # # Conversion en fonction de transfert
-        # self.state_space_model_tf = tf(self.state_space_model)
+        self.state_space_model_tf = tf(self.state_space_model)
 
         # # Affichage des informations sur les pôles
         # print("\nAnalyse des pôles pour le modèle complet :")
-        # self.pole_model = damp(self.state_space_model)
+        self.pole_model = damp(self.state_space_model)
 
         # # Utilisation de sisotool pour ajuster le gain (facultatif)
         # print("\nOuverture de sisotool pour ajuster le gain :")
-        # self.gain_k = sisotool(minreal(self.state_space_model)) #, kmin=0.001, kmax=10.0, kdefault=1.0, xispec=0.7*
-        sysp_v = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cpv,0)
-        sysp_g = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cpg,0)
-        sysp = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.Cp,0)
-        print(sysp)
-        print("Eigenvalues of Phugoid mode\n")
-        [print(round(i,5)) for i in sal.eig(self.matrix_A_phugoid)[0]]
+        self.gain_k = sisopy31.sisotool(minreal(self.state_space_model)) #, kmin=0.001, kmax=10.0, kdefault=1.0, xispec=0.7*
+        
+        
+        
+        #we create our system compare to each variable for the phugoid mode
+        self.system_phugoid_V = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_V,0)
+        print(self.system_phugoid_V)
+        self.system_phugoid_gamma= ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_gamma,0)
+  
+        #for the short period mode
+        self.system_short_period_alpha = ss(self.matrix_A_short_period,self.matrix_B_short_period,self.C_short_period_alpha,0)
+        self.system_short_period_q = ss(self.matrix_A_short_period,self.matrix_B_short_period,self.C_short_period_q,0)
+    
+        #we do the transfer fonction for each variable 
+        self.transfer_fonction_phugoid_V = ss2tf(self.system_phugoid_V)
+        print(f"tranfer fonction V\delta_m = {self.transfer_fonction_phugoid_V}")
+        self.transfer_fonction_phugoid_gamma = tf(self.system_phugoid_gamma)
+        print(f"tranfer fonction gamma\delta_m = {self.transfer_fonction_phugoid_gamma}")
+        
+        self.transfer_fonction_short_period_alpha = tf(self.system_short_period_alpha)
+        print(f"tranfer fonction alpha\delta_m = {self.transfer_fonction_short_period_alpha}")
+        self.transfer_fonction_short_period_q = tf(self.system_short_period_q)
+        print(f"tranfer fonction q\delta_m = {self.transfer_fonction_short_period_q}")
+        
+        #on affiche les poles:
+        self.pole_model_phugoid_V = damp(self.system_phugoid_V)
+        print(f"le pole associé à V\delta_m est: {self.pole_model_phugoid_V[-1]}")
+        self.pole_model_phugoid_gamma = damp(self.system_phugoid_gamma)
+        print(f"le pole associé à gamma\delta_m est: {self.pole_model_phugoid_gamma[-1]}")
+
+        self.pole_model_short_period_alpha = damp(self.system_short_period_alpha)
+        print(f"le pole associé à alpha\delta_m est: {self.pole_model_short_period_alpha[-1]}")
+        self.pole_model_short_period_q = damp(self.system_short_period_q)
+        print(f"le pole associé à q\delta_m est: {self.pole_model_short_period_q[-1]}")
+ 
+    
+
+        #no we plot the step response 
+        #phugoid:
+        self.Y_step_response_phugoid_v, self.time_response_phugoid_v = step_response(self.transfer_fonction_phugoid_V, np.arange(0,100,0.1))
+        self.Y_step_response_phugoid_gamma, self.time_response_phugoid_gamma = step_response(self.transfer_fonction_phugoid_gamma, np.arange(0,100,0.1))
+        
+        #short period
+        self.Y_step_response_short_period_alpha, self.time_response_short_period_alpha = step_response(self.transfer_fonction_short_period_alpha, np.arange(0,10,0.01))
+        self.Y_step_response_short_period_q, self.time_response_short_period_q = step_response(self.transfer_fonction_short_period_q, np.arange(0,10,0.01))
+
+
+        self.time_response_short_period_alpha = self.time_response_short_period_alpha.reshape(1,-1)
+        self.time_response_short_period_q = self.time_response_short_period_q.reshape(1,-1)
+
+        #fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+        
+        
+        """axs[0].plot(self.time_response_phugoid_v, self.Y_step_response_phugoid_v, 'b', self.Y_step_response_phugoid_gamma, self.time_response_phugoid_gamma, 'r')
+        axs[0].set_xlabel("Time (s)")
+        axs[0].set_ylabel("Amplitude")
+        axs[0].set_title("Phugoid step response")
+        axs[0].legend(["V (m/s)", "gamma (rad)"])
+
+
+        axs[1].plot(self.time_response_short_period_alpha, self.Y_step_response_short_period_alpha, 'b', self.time_response_short_period_q, self.Y_step_response_short_period_q, 'r')
+        axs[1].xlabel("Time (s)")
+        axs[1].ylabel("Amplitude")
+        axs[1].set_title("Short-period step response")
+        axs[1].legend(["alpha (rad)", "q (rad/s)"])
+     
+        plt.tight_layout()
+        plt.show()"""
 
     def ft_to_m(self, feet):
         """
@@ -320,7 +440,7 @@ Matrice D :
         except:pass
         
     def display_equilibrium_condition_values(self):
-        """
+        """ 
         Affiche les valeurs des conditions d'équilibre calculées.
         """
         print(f"""
