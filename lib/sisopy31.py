@@ -287,8 +287,8 @@ class dragGUI:
           self.l5.set_text('OS='+'{:.3f}'.format(OS)+' %'+'   tr5%='+'{:.3f}'.format(Ts)+' s'\
                           +'   Gain='+'{:.5f}'.format(self.gainSign*self.k))
           yy=interp1d(t,y)
-          self.l21.set_xdata(Ts)
-          self.l21.set_ydata(yy(Ts)) 
+          self.l21.set_xdata([Ts])
+          self.l21.set_ydata([yy(Ts)]) 
           self.l23.set_xdata([t[0],t[-1]])
           self.l23.set_ydata([0.95*y[-1],0.95*y[-1]])
           self.l24.set_xdata([t[0],t[-1]])
@@ -340,56 +340,61 @@ class dragGUI:
     
         self.fig1.canvas.draw_idle()
  
-    def onChangeGainSign(self,event):
-        # change the sign of the gain
-        self.gainSign*=-1
-        #self.sys=series(tf(self.gainSign,1),self.sys)
-        self.sys=series(control.tf(-1,1),self.sys)
-        #print('gain sign = ',self.gainSign)
-        #print(self.sys)
-        #print('onChangeGainSign')
-        # root locus for corrector gaio k in [0,+inf[ or ]-inf,0], depensing on the gain sign
-        if False and self.mingain==0.0001 and self.maxgain==40.0:
-        #if True:
-          # automatic scaling of root locus
-          (roots,gains) =control.rlocus(self.sys,plot=False)
-          self.mingain=gains[0]
-          if(self.mingain<1e-7):
-            self.mingain=gains[1]
-          self.maxgain=gains[-1]
-        (roots,gains) =control.rlocus(self.sys,logspace(log10(self.mingain),log10(self.maxgain),3000),plot=False)
-        
-        self.ax1.cla()
-        self.roots=roots
-        
-        self.rootlocus=self.ax1.plot(roots.real,roots.imag)
+    def onChangeGainSign(self, event):
+      # Changer le signe du gain
+      self.gainSign *= -1
+      self.sys = series(control.tf([self.gainSign], [1]), self.sys)
+      
+      # Mise à jour automatique des limites de gain si elles ne sont pas définies
+      if self.mingain is None or self.maxgain is None:
+          roots, gains = control.rlocus(self.sys, plot=False)
+          self.mingain = gains[0] if gains[0] > 1e-7 else gains[1]
+          self.maxgain = gains[-1]
 
-        polesloc=self.ax1.plot(roots.real,roots.imag)
-        rootsol=pole(self.sys)
-        zerool=zero(self.sys)
-        # plot poles of the open loop system
-        self.ax1.plot(rootsol.real,rootsol.imag,'bx',markersize=10) 
-        # plot zeros of the open loop system
-        self.ax1.plot(zerool.real,zerool.imag,'bo',markersize=10) 
+      # Calculer le lieu des racines avec une échelle logarithmique
+      roots, gains = control.rlocus(
+          self.sys,
+          np.logspace(np.log10(self.mingain), np.log10(self.maxgain), 3000),
+          plot=False
+      )
 
-        # closed loop system
-        clsys=control.feedback(series(tf([self.k],[1]),self.sys),tf([1],[1]))
-        # closed loop for the current gain
-        rootsk0=control.pole(clsys)
-        self.polesloc, =self.ax1.plot(rootsk0.real,rootsk0.imag,'r*',markersize=10)
+      # Effacer le graphique et redessiner
+      self.ax1.cla()
+      self.roots = roots
 
-        aa=max(sqrt(rootsk0.real**2+rootsk0.imag**2))
-        # xi=0.7 axes requirement
-        # xispec=0.7
-        thetaspec=acos(self.xispec)
-        self.ax1.plot([0,-aa*cos(thetaspec)],[0,aa*sin(thetaspec)],'k--')
-        self.ax1.plot([0,-aa*cos(thetaspec)],[0,-aa*sin(thetaspec)],'k--')
+      # Tracer le lieu des racines
+      for i in range(roots.shape[1]):
+          self.ax1.plot(np.real(roots[:, i]), np.imag(roots[:, i]), 'b')
 
-        self.ax1.title.set_text('Root locus')  
-        self.ax1.grid(True)
+      # Récupérer les pôles et zéros du système boucle ouverte
+      roots_ol = control.poles(self.sys)
+      zeros_ol = control.zeros(self.sys)
 
+      # Tracer les pôles (croix bleue) et zéros (cercle bleu) du système boucle ouverte
+      self.ax1.plot(np.real(roots_ol), np.imag(roots_ol), 'bx', markersize=10, label="Pôles boucle ouverte")
+      self.ax1.plot(np.real(zeros_ol), np.imag(zeros_ol), 'bo', markersize=10, label="Zéros boucle ouverte")
 
-        self.update(0,0,self.k)
+      # Système boucle fermée avec le gain actuel
+      clsys = feedback(series(control.tf([self.k], [1]), self.sys), control.tf([1], [1]))
+      roots_cl = control.poles(clsys)
+
+      # Tracer les pôles du système boucle fermée (étoile rouge)
+      self.polesloc, = self.ax1.plot(np.real(roots_cl), np.imag(roots_cl), 'r*', markersize=10, label="Pôles boucle fermée")
+
+      # Tracer les lignes pour le rapport d'amortissement spécifié (xi = self.xispec)
+      aa = max(np.sqrt(roots_cl.real**2 + roots_cl.imag**2))
+      thetaspec = acos(self.xispec)
+      self.ax1.plot([0, -aa * cos(thetaspec)], [0, aa * sin(thetaspec)], 'k--', label="Ligne de xi")
+      self.ax1.plot([0, -aa * cos(thetaspec)], [0, -aa * sin(thetaspec)], 'k--')
+
+      # Mise à jour du titre et de la grille
+      self.ax1.set_title('Lieu des racines')
+      self.ax1.grid(True)
+      self.ax1.legend()
+
+      # Rafraîchir le canvas
+      self.update(0, 0, self.k)
+
 
 
 class draggableGain:

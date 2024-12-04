@@ -219,12 +219,6 @@ class ControlAircraftModel:
         num_inputs = 1   # One input (delta_m)
         self.matrix_D = np.zeros((num_outputs, num_inputs))  # Zero matrix
 
-    def compute_phugoid_mode(self):
-        self.matrix_A_phugoid = self.matrix_A[0:2,0:2]
-        self.matrix_B_phugoid = self.matrix_B[0:2]
-        self.Cpv = np.array([1,0])
-        self.Cpg = np.array([0,1])
-        self.Cp = np.eye((2))
 
     def compute_X_p(self, A, X, B, U):
         return np.dot(A, X) + np.dot(B, U)
@@ -304,30 +298,36 @@ class ControlAircraftModel:
     def tau_z(self, Z_delta_m, m_q, m_alpha, m_delta_m, Z_alpha):
         return -((Z_delta_m * m_q) / (-m_alpha * Z_delta_m + m_delta_m * Z_alpha))
     
-    def compute_phugoid_mode(self):
+    def compute_phugoid_mode_matrix(self):
         self.matrix_A_phugoid = self.matrix_A[0:2,0:2]
         self.matrix_B_phugoid = self.matrix_B[0:2]
         self.C_phugoid_V = np.array([1,0])
         self.C_phugoid_gamma = np.array([0,1])
-
         
-    def compute_shortperiod_mode(self):
+    def compute_shortperiod_mode_matrix(self):
         self.matrix_A_short_period=self.matrix_A[3:4,3:4]
         self.matrix_B_short_period=self.matrix_B[3:4]
         self.C_short_period_alpha = np.array([1,0])
         self.C_short_period_q = np.array([0,1])
+    
+    def compute_eigen_val(self):
+        eigenA = np.linalg.eigvals(self.matrix_A)
+
+        sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
+        damping_ratio = control.matlab.damp(sys)                 # calcul of the damping ratio
+        return eigenA, sys, damping_ratio
         
     def open_loop(self):
         self.compute_teste()
-        self.compute_phugoid_mode()
-        self.compute_shortperiod_mode()
+        self.compute_phugoid_mode_matrix()
+        self.compute_shortperiod_mode_matrix()
         
-        print(self.matrix_A_teste)
-        print(self.matrix_C_teste_q)
+        #print(self.matrix_A_teste)
+        #print(self.matrix_C_teste_q)
         # # Création du modèle état-espace complet
         self.state_space_model = ss(self.matrix_A_teste, self.matrix_B_teste, self.matrix_C_teste_q, 0)
 
-        print("state_space : ", self.state_space_model)
+        #print("state_space : ", self.state_space_model)
         
         # # Conversion en fonction de transfert
         self.state_space_model_tf = tf(self.state_space_model)
@@ -338,13 +338,12 @@ class ControlAircraftModel:
 
         # # Utilisation de sisotool pour ajuster le gain (facultatif)
         # print("\nOuverture de sisotool pour ajuster le gain :")
-        self.gain_k = sisopy31.sisotool(minreal(self.state_space_model)) #, kmin=0.001, kmax=10.0, kdefault=1.0, xispec=0.7*
-        
+        self.gain_k = sisopy31.sisotool(1*minreal(self.state_space_model)) #, kmin=-0.15, kmax=-0.10, kdefault=1.0, xispec=0.7*
         
         
         #we create our system compare to each variable for the phugoid mode
         self.system_phugoid_V = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_V,0)
-        print(self.system_phugoid_V)
+        #print(self.system_phugoid_V)
         self.system_phugoid_gamma= ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_gamma,0)
   
         #for the short period mode
@@ -353,25 +352,25 @@ class ControlAircraftModel:
     
         #we do the transfer fonction for each variable 
         self.transfer_fonction_phugoid_V = ss2tf(self.system_phugoid_V)
-        print(f"tranfer fonction V\delta_m = {self.transfer_fonction_phugoid_V}")
+        #print(f"tranfer fonction V\delta_m = {self.transfer_fonction_phugoid_V}")
         self.transfer_fonction_phugoid_gamma = tf(self.system_phugoid_gamma)
-        print(f"tranfer fonction gamma\delta_m = {self.transfer_fonction_phugoid_gamma}")
+        #print(f"tranfer fonction gamma\delta_m = {self.transfer_fonction_phugoid_gamma}")
         
         self.transfer_fonction_short_period_alpha = tf(self.system_short_period_alpha)
-        print(f"tranfer fonction alpha\delta_m = {self.transfer_fonction_short_period_alpha}")
+        #print(f"tranfer fonction alpha\delta_m = {self.transfer_fonction_short_period_alpha}")
         self.transfer_fonction_short_period_q = tf(self.system_short_period_q)
-        print(f"tranfer fonction q\delta_m = {self.transfer_fonction_short_period_q}")
+        #print(f"tranfer fonction q\delta_m = {self.transfer_fonction_short_period_q}")
         
         #on affiche les poles:
         self.pole_model_phugoid_V = damp(self.system_phugoid_V)
-        print(f"le pole associé à V\delta_m est: {self.pole_model_phugoid_V[-1]}")
+        #print(f"le pole associé à V\delta_m est: {self.pole_model_phugoid_V[-1]}")
         self.pole_model_phugoid_gamma = damp(self.system_phugoid_gamma)
-        print(f"le pole associé à gamma\delta_m est: {self.pole_model_phugoid_gamma[-1]}")
+        #print(f"le pole associé à gamma\delta_m est: {self.pole_model_phugoid_gamma[-1]}")
 
         self.pole_model_short_period_alpha = damp(self.system_short_period_alpha)
-        print(f"le pole associé à alpha\delta_m est: {self.pole_model_short_period_alpha[-1]}")
+        #print(f"le pole associé à alpha\delta_m est: {self.pole_model_short_period_alpha[-1]}")
         self.pole_model_short_period_q = damp(self.system_short_period_q)
-        print(f"le pole associé à q\delta_m est: {self.pole_model_short_period_q[-1]}")
+        #print(f"le pole associé à q\delta_m est: {self.pole_model_short_period_q[-1]}")
  
     
 
