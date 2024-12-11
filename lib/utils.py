@@ -141,56 +141,74 @@ class ControlAircraftModel:
     def compute_F_eq(self, rho, V_eq, S, C_x_eq, alpha_eq):
         return (0.5 * rho * pow(V_eq, 2) * S * C_x_eq) / (np.cos(alpha_eq))
     
+    
     def compute_X_v(self, Q, S, C_x_eq, m, V_eq):
         return (2 * Q * S * C_x_eq) / (m * V_eq)
+    
     
     def compute_X_alpha(self, F_eq, m, V_eq, alpha_eq, Q, S, C_x_alpha):
         return ((F_eq)/(m * V_eq)) * np.sin(alpha_eq) + (Q * S * C_x_alpha) / (m * V_eq)
     
+    
     def compute_X_gamma(self, g_0, gamma_eq, V_eq):
         return (g_0 * np.cos(gamma_eq))/V_eq
+    
     
     def compute_X_delta_m(self, Q, S, C_x_delta_m, m, V_eq):
         return (Q * S * C_x_delta_m) / (m * V_eq)
     
+    
     def compute_X_tau(self, F_tau, alpha_eq, m, V_eq):
         return -(F_tau * np.cos(alpha_eq)) / (m * V_eq)
+    
     
     def compute_m_v(self):
         return 0
     
+    
     def compute_m_alpha(self, Q, S, l_ref, C_m_alpha, I_yy):
         return (Q * S * l_ref * C_m_alpha) / I_yy
+    
     
     def compute_m_q(self, Q, S, l_ref, C_m_q, V_eq, I_yy):
         return (Q * S * pow(l_ref, 2) * C_m_q) / (V_eq * I_yy)
     
+    
     def compute_m_delta_m(self, Q, S, l_ref, C_m_delta_m, I_yy):
         return (Q * S * l_ref * C_m_delta_m) / I_yy
+    
     
     def compute_Z_V(self, Q, S, C_z_eq, m, V_eq):
         return (2 * Q * S * C_z_eq) / (m * V_eq)
     
+    
     def compute_Z_V_(self, g_0, V_eq):
         return (2 * g_0) / V_eq
+    
     
     def compute_Z_alpha(self, F_eq, m, V_eq, alpha_eq, Q, S, C_z_alpha):
         return (F_eq / (m * V_eq)) * np.cos(alpha_eq) + (Q * S * C_z_alpha) / (m * V_eq)
     
+    
     def compute_Z_gamma(self, g_0, gamma_eq, V_eq):
         return (g_0 * np.sin(gamma_eq)) / V_eq
+    
     
     def compute_Z_delta_m(self, Q, S, C_z_delta_m, m, V_eq):
         return (Q * S * C_z_delta_m) / (m * V_eq)  
     
+    
     def compute_Z_tau(self, F_tau, alpha_eq, m, V_eq):
         return (F_tau * np.sin(alpha_eq)) / (m * V_eq)
+    
     
     def compute_C_m_delta_m(self, Y, l_ref, C_x_delta_m, alpha_eq, C_z_delta_m):
         return (Y/l_ref) * (C_x_delta_m * np.sin(alpha_eq) + C_z_delta_m * np.cos(alpha_eq))
     
+    
     def compute_C_x_alpha(self, k, C_z, C_z_alpha):
         return 2 * k * C_z * C_z_alpha
+    
     
     def compute_C_m_alpha(self, X, l_ref, C_x_alpha, alpha_eq, C_z_alpha):
         #(X/lref)*(Cxa*np.sin(aeq) + Cza*np.cos(aeq))
@@ -210,9 +228,11 @@ class ControlAircraftModel:
     def compute_B_array(self, Z_delta_m, m_delta_m):
         self.matrix_B = np.array([0, Z_delta_m, -Z_delta_m, m_delta_m, 0, 0]).T
         
+        
     def compute_C_array(self):
         num_states = 6  # Number of states (V, gamma, alpha, q, theta, z)
         self.matrix_C = np.eye(num_states)  # Identity matrix
+
 
     def compute_D_array(self):
         num_outputs = 6  # Number of outputs (same as the number of states)
@@ -222,13 +242,6 @@ class ControlAircraftModel:
 
     def compute_X_p(self, A, X, B, U):
         return np.dot(A, X) + np.dot(B, U)
-    
-    def compute_teste(self):
-       self.matrix_A_teste = self.matrix_A[1:,1:]
-       self.matrix_B_teste = self.matrix_B[1:]
-       self.matrix_C_teste = np.zeros((5,1))
-       self.matrix_C_teste[2] = 1
-       self.matrix_C_teste_q = self.matrix_C_teste.T
        
         
     def equilibrium_point(self, F_p_x_eq=0, alpha_eq_0=0, epsilon=1e-6):
@@ -257,10 +270,12 @@ class ControlAircraftModel:
             alpha_eq_list.append(alpha_eq)  # Mise à jour de la liste alpha_eq_list
         return C_z_eq, C_x_eq, C_x_delta_m, delta_m_eq, alpha_eq_list, F_p_x_eq
         
+        
     def compute_dynamic_matrix(self):
         #if self.X_v is not None and self.X_gamma is not None and self.X_alpha is not None and self.Z_v is not None and self.Z_alpha is not None and self.m_alpha is not None and self.m_q is not None and self.V_eq is not None:
         self.compute_A_array(self.X_v, self.X_gamma, self.X_alpha, self.Z_v, self.Z_alpha, self.m_alpha, self.m_q, self.V_eq)
         self.compute_C_array()
+
 
     def compute_control_matrix(self):
         #if self.Z_delta_m is not None and self.m_delta_m is not None:
@@ -292,11 +307,14 @@ class ControlAircraftModel:
     def K1(self, V_eq, m_alpha, Z_delta_m, m_delta_m, Z_alpha, m_q):
         return (-V_eq * (-m_alpha * Z_delta_m + m_delta_m * Z_alpha)) / (-m_q * Z_alpha - m_alpha)
     
+    
     def omega(self, Z_delta_m, m_alpha, Z_alpha, m_delta_m):
         return math.sqrt(-Z_delta_m * (-m_alpha * Z_delta_m + m_delta_m * Z_alpha)) / Z_delta_m
     
+    
     def tau_z(self, Z_delta_m, m_q, m_alpha, m_delta_m, Z_alpha):
         return -((Z_delta_m * m_q) / (-m_alpha * Z_delta_m + m_delta_m * Z_alpha))
+    
     
     def compute_phugoid_mode_matrix(self):
         self.matrix_A_phugoid = self.matrix_A[0:2,0:2]
@@ -304,28 +322,122 @@ class ControlAircraftModel:
         self.C_phugoid_V = np.array([1,0])
         self.C_phugoid_gamma = np.array([0,1])
         
+        
     def compute_shortperiod_mode_matrix(self):
         self.matrix_A_short_period=self.matrix_A[3:4,3:4]
         self.matrix_B_short_period=self.matrix_B[3:4]
         self.C_short_period_alpha = np.array([1,0])
         self.C_short_period_q = np.array([0,1])
     
-    def compute_eigen_val(self):
-        eigenA = np.linalg.eigvals(self.matrix_A)
+    def step_response(self, tf, start_time=0, finish_time=10, step=0.01, threshold=0.05, interpolation=False, legend="", plot=True):
+        """Calcule et affiche (optionnellement) la réponse indicielle pour une fonction de transfert donnée."""
+        Y, T = control.matlab.step(tf, np.arange(start_time, finish_time, step))
 
-        sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
-        damping_ratio = control.matlab.damp(sys)                 # calcul of the damping ratio
-        return eigenA, sys, damping_ratio
+        # Si la sortie est multidimensionnelle, prendre la première dimension par défaut
+        if Y.ndim > 1:
+            Y = Y[:, 0, 0]  # Adapte ceci si la structure de Y diffère
+
+        # Tracer la réponse indicielle si demandé
+        if plot:
+            plt.plot(T, Y, lw=2, label=legend)
+
+            # Lignes de seuil (optionnel)
+            if threshold != 0:
+                plt.plot([0, T[-1]], [Y[-1], Y[-1]], 'k--', lw=1)  # Valeur finale
+                plt.plot([0, T[-1]], [(1 + threshold) * Y[-1], (1 + threshold) * Y[-1]], 'k--', lw=1)  # +seuil
+                plt.plot([0, T[-1]], [(1 - threshold) * Y[-1], (1 - threshold) * Y[-1]], 'k--', lw=1)  # -seuil
+
+            # Interpolation pour les temps caractéristiques (optionnel)
+            if interpolation:
+                try:
+                    from scipy.interpolate import interp1d
+                    step_info = control.step_info(tf)
+                    Ts = step_info.get("SettlingTime", None)
+                    if Ts is not None:
+                        yy = interp1d(T, Y)
+                        plt.plot(Ts, yy(Ts), 'bs')
+                except Exception as e:
+                    print(f"An error occurred during interpolation: {e}")
+
+        return T, Y
+
+
+    def compute_transient_phase(self):
+        # Calcul des modes et fonctions de transfert
+        self.sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
+        self.wn, self.damping, self.eigenvalues = control.damp(self.sys)
+
+        self.compute_shortperiod_mode_matrix()
+        self.compute_phugoid_mode_matrix()
+
+        # Short period mode
+        self.ss_sp_alpha = control.ss(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_alpha.T, 0)
+        self.tf_sp_alpha = control.tf(self.ss_sp_alpha)
+
+        self.ss_sp_q = control.ss(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_q.T, 0)
+        self.tf_sp_q = control.tf(self.ss_sp_q)
+
+        # Phugoid mode
+        self.ss_phu_v = control.ss(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_V.T, 0)
+        self.tf_phu_v = control.tf(self.ss_phu_v)
+
+        self.ss_phu_g = control.ss(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_gamma.T, 0)
+        self.tf_phu_g = control.tf(self.ss_phu_g)
+
+        # Calcul des réponses en échelon et stockage dans les attributs
+        self.time_response_short_period_alpha, self.Y_step_response_short_period_alpha = self.step_response(
+            self.tf_sp_alpha, 0, 10, 0.01, legend=r"$\alpha/\delta_m$", plot=False
+        )
+        self.time_response_short_period_q, self.Y_step_response_short_period_q = self.step_response(
+            self.tf_sp_q, 0, 10, 0.01, legend=r"$q/\delta_m$", plot=False
+        )
+        self.time_response_phugoid_v, self.Y_step_response_phugoid_v = self.step_response(
+            self.tf_phu_v, 0, 700, 0.01, legend=r"$V/\delta_m$", plot=False
+        )
+        self.time_response_phugoid_gamma, self.Y_step_response_phugoid_gamma = self.step_response(
+            self.tf_phu_g, 0, 700, 0.01, legend=r"$\gamma/\delta_m$", plot=False
+        )
+
+
+
+    
+    def compute_matrix_for_input(self, label:str):
+        if label == 'q':
+            self.matrix_A_q = self.matrix_A[1:,1:]
+            self.matrix_B_q = self.matrix_B[1:]
+            self.matrix_C_q = np.zeros((5,1))
+            self.matrix_C_q[2] = 1
+            self.matrix_C_q = self.matrix_C_q.T
+        if label == 'gamma':
+            self.matrix_A_gamma = self.matrix_A_q 
+            self.matrix_B_gamma = self.matrix_B[1:]
+            self.matrix_C_gamma = np.zeros((5,1))
+            self.matrix_C_gamma[2] = 1
+            self.matrix_C_gamma = self.matrix_C_gamma.T
+        if label == 'z':
+            self.matrix_A_z = self.matrix_A[1:,1:]
+            self.matrix_B_z = self.matrix_B[1:]
+            self.matrix_C_z = np.zeros((5,1))
+            self.matrix_C_z[2] = 1
+            self.matrix_C_z = self.matrix_C_z.T
+        if label == 'alpha':
+            self.matrix_A_z = self.matrix_A[1:,1:]
+            self.matrix_B_z = self.matrix_B[1:]
+            self.matrix_C_z = np.zeros((5,1))
+            self.matrix_C_z[2] = 1
+            self.matrix_C_z = self.matrix_C_z.T
+    
         
     def open_loop(self):
-        self.compute_teste()
+        
+        #self.compute_matrix_for_input()
         self.compute_phugoid_mode_matrix()
         self.compute_shortperiod_mode_matrix()
         
         #print(self.matrix_A_teste)
         #print(self.matrix_C_teste_q)
         # # Création du modèle état-espace complet
-        self.state_space_model = ss(self.matrix_A_teste, self.matrix_B_teste, self.matrix_C_teste_q, 0)
+        """self.state_space_model = ss(self.matrix_A_teste, self.matrix_B_teste, self.matrix_C_teste_q, 0)
 
         #print("state_space : ", self.state_space_model)
         
@@ -338,54 +450,9 @@ class ControlAircraftModel:
 
         # # Utilisation de sisotool pour ajuster le gain (facultatif)
         # print("\nOuverture de sisotool pour ajuster le gain :")
-        self.gain_k = sisopy31.sisotool(1*minreal(self.state_space_model)) #, kmin=-0.15, kmax=-0.10, kdefault=1.0, xispec=0.7*
+        self.gain_k = sisopy31.sisotool(1*minreal(self.state_space_model)) #, kmin=-0.15, kmax=-0.10, kdefault=1.0, xispec=0.7*"""
         
         
-        #we create our system compare to each variable for the phugoid mode
-        self.system_phugoid_V = ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_V,0)
-        #print(self.system_phugoid_V)
-        self.system_phugoid_gamma= ss(self.matrix_A_phugoid,self.matrix_B_phugoid,self.C_phugoid_gamma,0)
-  
-        #for the short period mode
-        self.system_short_period_alpha = ss(self.matrix_A_short_period,self.matrix_B_short_period,self.C_short_period_alpha,0)
-        self.system_short_period_q = ss(self.matrix_A_short_period,self.matrix_B_short_period,self.C_short_period_q,0)
-    
-        #we do the transfer fonction for each variable 
-        self.transfer_fonction_phugoid_V = ss2tf(self.system_phugoid_V)
-        #print(f"tranfer fonction V\delta_m = {self.transfer_fonction_phugoid_V}")
-        self.transfer_fonction_phugoid_gamma = tf(self.system_phugoid_gamma)
-        #print(f"tranfer fonction gamma\delta_m = {self.transfer_fonction_phugoid_gamma}")
-        
-        self.transfer_fonction_short_period_alpha = tf(self.system_short_period_alpha)
-        #print(f"tranfer fonction alpha\delta_m = {self.transfer_fonction_short_period_alpha}")
-        self.transfer_fonction_short_period_q = tf(self.system_short_period_q)
-        #print(f"tranfer fonction q\delta_m = {self.transfer_fonction_short_period_q}")
-        
-        #on affiche les poles:
-        self.pole_model_phugoid_V = damp(self.system_phugoid_V)
-        #print(f"le pole associé à V\delta_m est: {self.pole_model_phugoid_V[-1]}")
-        self.pole_model_phugoid_gamma = damp(self.system_phugoid_gamma)
-        #print(f"le pole associé à gamma\delta_m est: {self.pole_model_phugoid_gamma[-1]}")
-
-        self.pole_model_short_period_alpha = damp(self.system_short_period_alpha)
-        #print(f"le pole associé à alpha\delta_m est: {self.pole_model_short_period_alpha[-1]}")
-        self.pole_model_short_period_q = damp(self.system_short_period_q)
-        #print(f"le pole associé à q\delta_m est: {self.pole_model_short_period_q[-1]}")
- 
-    
-
-        #no we plot the step response 
-        #phugoid:
-        self.Y_step_response_phugoid_v, self.time_response_phugoid_v = step_response(self.transfer_fonction_phugoid_V, np.arange(0,100,0.1))
-        self.Y_step_response_phugoid_gamma, self.time_response_phugoid_gamma = step_response(self.transfer_fonction_phugoid_gamma, np.arange(0,100,0.1))
-        
-        #short period
-        self.Y_step_response_short_period_alpha, self.time_response_short_period_alpha = step_response(self.transfer_fonction_short_period_alpha, np.arange(0,10,0.01))
-        self.Y_step_response_short_period_q, self.time_response_short_period_q = step_response(self.transfer_fonction_short_period_q, np.arange(0,10,0.01))
-
-
-        self.time_response_short_period_alpha = self.time_response_short_period_alpha.reshape(1,-1)
-        self.time_response_short_period_q = self.time_response_short_period_q.reshape(1,-1)
 
         #fig, axs = plt.subplots(1, 2, figsize=(12, 6))
         
@@ -553,6 +620,67 @@ Vitesse d'équilibre (V_eq):                          {self.V_eq:.2f} m/s
 Gamma à l'équilibre (gamma_eq):                      {self.gamma_eq:.6f}
 ##############################################################
     """)
+        
+    def display_transient_phase(self):
+        print(f"""
+####################### OSCILLATION MODES #######################
+    - Short period mode: 
+        * Poles           : {self.poles_sp}, {self.poles_sp} 
+        * Proper pulsation: {self.wn_sp} rad/s
+        * Damping ratio   : {self.zeta_sp} 
+    
+    - Phugoid mode:
+        * Poles           : {self.poles_phu}, {self.poles_phu}
+        * Proper pulsation: {self.wn_phu} rad/s
+        * Damping ratio   : {self.zeta_phu} 
+              
+#################### STATE SPACE REPRESENTATION ##################
+    - Short period mode: 
+        >> Alpha : {self.ss_sp_alpha}
+        >> Q : {self.ss_sp_q}
+    
+    - Phugoid mode:
+        >> Gamma : {self.ss_phu_g}
+        >> V : {self.ss_phu_v}
+
+####################### TRANSFER FUNCTIONS #######################
+    Short period mode:
+            - Alpha: \n{str(self.tf_sp_alpha)}
+            - q    : \n{str(self.tf_sp_q)}
+            
+        Phugoid mode:
+            - V    : \n{str(self.tf_phu_v)}
+            - Gamma    : \n{str(self.tf_phu_g)}
+
+              """)
+        
+
+    def plot_step_response(self):
+        # Plot short period mode step responses
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.time_response_short_period_alpha, self.Y_step_response_short_period_alpha, label=r"$\alpha/\delta_m$")
+        plt.plot(self.time_response_short_period_q, self.Y_step_response_short_period_q, label=r"$q/\delta_m$")
+        plt.xlabel("Time (in seconds)")
+        plt.ylabel(r"Response ($\alpha$ in rad, $q$ in $rad.s^{-1}$)")
+        plt.title("Step Response of Short Period Mode Variables")
+        plt.suptitle("Dynamic Mode Analysis", fontsize=16)
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+        # Plot phugoid mode step responses
+        plt.figure(figsize=(10, 6))
+        plt.plot(self.time_response_phugoid_v, self.Y_step_response_phugoid_v, label=r"$V/\delta_m$")
+        plt.plot(self.time_response_phugoid_gamma, self.Y_step_response_phugoid_gamma, label=r"$\gamma/\delta_m$")
+        plt.xlabel("Time (in seconds)")
+        plt.ylabel(r"Response ($V$ in $m.s^{-1}$, $\gamma$ in rad)")
+        plt.title("Step Response of Phugoid Mode Variables")
+        plt.suptitle("Dynamic Mode Analysis", fontsize=16)
+        plt.legend()
+        plt.grid()
+        plt.show()
+
+
 
 
     

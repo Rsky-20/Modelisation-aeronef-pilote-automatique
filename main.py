@@ -18,7 +18,9 @@ def main():
     # aircraft.display_matrix()
     aircraft.display_time_process(aircraft.open_loop)
     #aircraft.display_state_space_info()
-
+    aircraft.compute_transient_phase()
+    #aircraft.display_transient_phase()
+    aircraft.plot_step_response()
 
 
 if __name__ == '__main__':
