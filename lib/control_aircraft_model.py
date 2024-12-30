@@ -2,7 +2,8 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.signal import TransferFunction, bode, ss2tf, step
 import matplotlib.pyplot as plt
-from control import ss, feedback, damp, tf, step_response
+from control import *
+import control.matlab
 import math
 import os
 import sys
@@ -113,6 +114,7 @@ class ControlAircraftModel:
         
         self.sp_eigenA, self.phu_eigenA = None, None
         self.sp_eigen_list, self.phu_eigen_list = [], []
+        self.fig_phu, self.fig_sp, self.ax_phu, self.ax_sp = None, None, None, None
 
     
     #############################################
@@ -305,43 +307,11 @@ class ControlAircraftModel:
         
         
     def compute_short_period_mode_matrix(self):
-        self.matrix_A_short_period=self.matrix_A[3:4,3:4]
-        self.matrix_B_short_period=self.matrix_B[3:4]
+        self.matrix_A_short_period=self.matrix_A[2:4,2:4]
+        self.matrix_B_short_period=self.matrix_B[2:4]
         self.C_short_period_alpha = np.array([1,0])
         self.C_short_period_q = np.array([0,1])
 
-
-    def step_response(self, tf, start_time=0, finish_time=10, step=0.01, threshold=0.05, interpolation=False, legend="", plot=True):
-        """Calcule et affiche (optionnellement) la réponse indicielle pour une fonction de transfert donnée."""
-        Y, T = control.matlab.step(tf, np.arange(start_time, finish_time, step))
-
-        # Si la sortie est multidimensionnelle, prendre la première dimension par défaut
-        if Y.ndim > 1:
-            Y = Y[:, 0, 0]  # Adapte ceci si la structure de Y diffère
-
-        # Tracer la réponse indicielle si demandé
-        if plot:
-            plt.plot(T, Y, lw=2, label=legend)
-
-            # Lignes de seuil (optionnel)
-            if threshold != 0:
-                plt.plot([0, T[-1]], [Y[-1], Y[-1]], 'k--', lw=1)  # Valeur finale
-                plt.plot([0, T[-1]], [(1 + threshold) * Y[-1], (1 + threshold) * Y[-1]], 'k--', lw=1)  # +seuil
-                plt.plot([0, T[-1]], [(1 - threshold) * Y[-1], (1 - threshold) * Y[-1]], 'k--', lw=1)  # -seuil
-
-            # Interpolation pour les temps caractéristiques (optionnel)
-            if interpolation:
-                try:
-                    from scipy.interpolate import interp1d
-                    step_info = control.step_info(tf)
-                    Ts = step_info.get("SettlingTime", None)
-                    if Ts is not None:
-                        yy = interp1d(T, Y)
-                        plt.plot(Ts, yy(Ts), 'bs')
-                except Exception as e:
-                    print(f"An error occurred during interpolation: {e}")
-
-        return T, Y
     
     def open_loop(self):
         # Calcul des valeurs propres
@@ -358,53 +328,90 @@ class ControlAircraftModel:
         self.wn, self.damping, self.eigenvalues = control.damp(self.sys)
 
 
+    def compute_system(self, matrix_A, matrix_B, C_vector, mode='tf'):
+        ss_system = control.ss(matrix_A, matrix_B, C_vector.T, 0)
+        wn, damping, eigenvalues = control.damp(ss_system)
+        if mode == 'tf':
+            tf_system = control.ss2tf(ss_system)
+        else:
+            tf_system = control.ss2tf(ss_system)
+        return ss_system, wn, damping, eigenvalues, tf_system
+
+    def step_response_graph(self, ax, fig, T1, Y1, T2, Y2, labels, title, xlabel, ylabel, fig_name=None):
+        ax.plot(T1, Y1, "b", label=labels[0], lw=2)
+        ax.plot(T2, Y2, "r", label=labels[1], lw=2)
+        ax.plot([0, T1[-1]], [Y1[-1], Y1[-1]], 'k--', lw=1)
+        ax.plot([0, T1[-1]], [1.05 * Y1[-1], 1.05 * Y1[-1]], 'k--', lw=1)
+        ax.plot([0, T1[-1]], [0.95 * Y1[-1], 0.95 * Y1[-1]], 'k--', lw=1)
+        ax.plot([0, T2[-1]], [Y2[-1], Y2[-1]], 'k--', lw=1)
+        ax.plot([0, T2[-1]], [1.05 * Y2[-1], 1.05 * Y2[-1]], 'k--', lw=1)
+        ax.plot([0, T2[-1]], [0.95 * Y2[-1], 0.95 * Y2[-1]], 'k--', lw=1)
+        ax.minorticks_on()
+        ax.grid(True)
+        ax.set_title(title)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.legend()
+        if fig_name != None:
+            fig.canvas.manager.set_window_title(fig_name)
+
 
     def compute_transient_phase(self):
-        # Calcul des modes et fonctions de transfert
+        # Calcul des matrices pour les deux modes
         self.compute_short_period_mode_matrix()
         self.compute_phugoid_mode_matrix()
+
+        # Vérifiez les matrices nécessaires
+        assert hasattr(self, "matrix_A_short_period"), "Short period matrix A is not defined."
+        assert hasattr(self, "matrix_B_short_period"), "Short period matrix B is not defined."
+        assert hasattr(self, "matrix_A_phugoid"), "Phugoid matrix A is not defined."
+
+        # Calcul des systèmes pour short period
+        self.ss_sp_alpha, self.sp_wn_alpha, self.sp_damping_alpha, self.sp_eigenvalues_alpha, self.tf_sp_alpha = \
+            self.compute_system(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_alpha)
+        self.ss_sp_q, self.sp_wn_q, self.sp_damping_q, self.sp_eigenvalues_q, self.tf_sp_q = \
+            self.compute_system(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_q, mode='ss2tf')
+
+        # Calcul des systèmes pour phugoïde
+        self.ss_phu_v, self.phu_wn_v, self.phu_damping_v, self.phu_eigenvalues_v, self.tf_phu_v = \
+            self.compute_system(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_V)
+        self.ss_phu_g, self.phu_wn_g, self.phu_damping_g, self.phu_eigenvalues_g, self.tf_phu_g = \
+            self.compute_system(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_gamma, mode='ss2tf')
+
+        # Tracé des réponses en échelon pour short period
+        self.fig_sp, self.ax_sp = plt.subplots()
+        Ya, Ta = control.matlab.step(self.tf_sp_alpha, arange(0, 10, 0.01))
+        Yq, Tq = control.matlab.step(self.tf_sp_q, arange(0, 10, 0.01))
+        self.step_response_graph(
+            self.ax_sp, self.fig_sp,
+            Ta, Ya, Tq, Yq,
+            labels=[r"$\alpha/\delta_m$", r"$q/\delta_m$"],
+            title=r"Step response $\alpha/\delta_m$ et $q/\delta_m$",
+            xlabel="Time (s)",
+            ylabel=r"$\alpha$ (rad) & $q$ (rad/s)",
+            fig_name="Short_Period_Step_Response"
+        )
+
+        # Tracé des réponses en échelon pour phugoïde
+        self.fig_phu, self.ax_phu = plt.subplots()
+        Yv, Tv = control.matlab.step(self.tf_phu_v, arange(0, 700, 0.1))
+        Yg, Tg = control.matlab.step(self.tf_phu_g, arange(0, 700, 0.1))
+        self.step_response_graph(
+            self.ax_phu, self.fig_phu,
+            Tv, Yv, Tg, Yg,
+            labels=[r"$V/\delta_m$", r"$\gamma/\delta_m$"],
+            title=r"Step response $V/\delta_m$ et $\gamma/\delta_m$",
+            xlabel="Time (s)",
+            ylabel=r"$V$ (m/s) & $\gamma$ (rad)",
+            fig_name="Phugoid_Step_Response"
+        )
         
-        self.sp_eigenA = np.linalg.eigvals(self.matrix_A_short_period)
-        for pole in self.sp_eigenA:
-            sigma = pole.real  # Partie réelle
-            omega = pole.imag  # Partie imaginaire
-            omega_n = np.sqrt(sigma**2 + omega**2)
-            zeta = -sigma / omega_n if omega_n != 0 else 0  # Évite la division par zéro
-            self.sp_eigen_list.append({'eigen' : pole, 'wn' : round(omega_n,4), 'Xi' : round(zeta, 4)})
-
-
-        # Short period mode
-        self.ss_sp_alpha = control.ss(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_alpha.T, 0)
-        self.sp_wn_alpha, self.sp_damping_alpha, self.sp_eigenvalues_alpha = control.damp(self.ss_sp_alpha)
-        self.tf_sp_alpha = control.tf(self.ss_sp_alpha)
-
-        self.ss_sp_q = control.ss(self.matrix_A_short_period, self.matrix_B_short_period, self.C_short_period_q.T, 0)
-        self.sp_wn_q, self.sp_damping_q, self.sp_eigenvalues_q = control.damp(self.ss_sp_q)        
-        self.tf_sp_q = control.tf(self.ss_sp_q)
-
-        # Phugoid mode
-        self.ss_phu_v = control.ss(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_V.T, 0)
-        self.phu_wn_v, self.phu_damping_v, self.phu_eigenvalues_v = control.damp(self.ss_phu_v)
-        self.tf_phu_v = control.tf(self.ss_phu_v)
-
-        self.ss_phu_g = control.ss(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_gamma.T, 0)
-        self.phu_wn_g, self.phu_damping_g, self.phu_eigenvalues_g = control.damp(self.ss_phu_g)
-        self.tf_phu_g = control.tf(self.ss_phu_g)
-
-        # Calcul des réponses en échelon et stockage dans les attributs
-        self.time_response_short_period_alpha, self.Y_step_response_short_period_alpha = self.step_response(
-            self.tf_sp_alpha, 0, 10, 0.01, legend=r"$\alpha/\delta_m$", plot=False
-        )
-        self.time_response_short_period_q, self.Y_step_response_short_period_q = self.step_response(
-            self.tf_sp_q, 0, 10, 0.01, legend=r"$q/\delta_m$", plot=False
-        )
-        self.time_response_phugoid_v, self.Y_step_response_phugoid_v = self.step_response(
-            self.tf_phu_v, 0, 700, 0.01, legend=r"$V/\delta_m$", plot=False
-        )
-        self.time_response_phugoid_gamma, self.Y_step_response_phugoid_gamma = self.step_response(
-            self.tf_phu_g, 0, 700, 0.01, legend=r"$\gamma/\delta_m$", plot=False
-        )
-
+        _, _, self.Tsa = step_info(Ta, Ya)
+        _, _, self.Tsq = step_info(Tq, Yq)
+        
+        _, _, self.Tsv = step_info(Tv, Yv)
+        _, _, self.Tsg = step_info(Tg, Yg)
+         
     
     def compute_matrix_for_input(self, label:str):
         if label == 'q':

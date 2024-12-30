@@ -7,23 +7,6 @@ import lib.sisopy31 as spy31
 import lib.atm_std as atm_std
 
 
-def main_old():
-    # Initialize aircraft model
-    aircraft = ControlAircraftModel()
-    
-    
-    aircraft.display_time_process(aircraft.equilibrium_conditions)
-    aircraft.display_time_process(aircraft.compute_dynamic_matrix)
-    aircraft.display_time_process(aircraft.compute_control_matrix)
-    # aircraft.display_aircraft_parameters()
-    # aircraft.display_equilibrium_condition_values()
-    aircraft.display_matrix()
-    aircraft.display_time_process(aircraft.open_loop)
-    #aircraft.display_state_space_info()
-    aircraft.compute_transient_phase()
-    #aircraft.display_transient_phase()
-    aircraft.plot_step_response()
-
 def main():
     aircraft = ControlAircraftModel()
     display_cam = Display_CAM(aircraft)

@@ -6,6 +6,7 @@ from control import ss, feedback, damp, tf, step_response
 import math
 import os
 import sys
+import traceback
 
 try:
     from sisopy31 import *
@@ -88,8 +89,8 @@ def display_time_process(func, *args, **kwargs):
         return result
     except ValueError as err:
         print(f"[{YELLOW}INFO{RESET}] - Process status : {RED}ERROR{RESET}")
-        print(f"[{RED}ERROR{RESET}]\n{err}")
-
+        print(f"[{RED}ERROR{RESET}]\n{LIGHT_RED}{err}{RESET}")
+        traceback.print_exc()  # Affiche la trace avec le message complet
 
 class Display_CAM:
     def __init__(self, control_aircraft_model):
@@ -254,6 +255,7 @@ EigenValues :
     def transient_phase(self):
         print(f"""
 ####################### OSCILLATION MODES #######################
+
     - Short period mode: 
         >> Alpha : 
         * Poles           :{self.CAM.sp_eigenvalues_alpha}
@@ -275,47 +277,46 @@ EigenValues :
         * Damping ratio   : {self.CAM.phu_damping_v} 
               
 #################### STATE SPACE REPRESENTATION ##################
+
     - Short period mode: 
-        >> Alpha : {self.CAM.ss_sp_alpha}
-        >> Q : {self.CAM.ss_sp_q}
+        >> Alpha    : \n{self.CAM.ss_sp_alpha}
+        >> Q        : \n{self.CAM.ss_sp_q}
     
     - Phugoid mode:
-        >> Gamma : {self.CAM.ss_phu_g}
-        >> V : {self.CAM.ss_phu_v}
+        >> Gamma    : \n{self.CAM.ss_phu_g}
+        >> V        : \n{self.CAM.ss_phu_v}
 
 ####################### TRANSFER FUNCTIONS #######################
-    Short period mode:
+
+    - Short period mode:
             - Alpha: \n{str(self.CAM.tf_sp_alpha)}
             - q    : \n{str(self.CAM.tf_sp_q)}
             
-        Phugoid mode:
-            - V    : \n{str(self.CAM.tf_phu_v)}
-            - Gamma    : \n{str(self.CAM.tf_phu_g)}
+    - Phugoid mode:
+            - V     : \n{str(self.CAM.tf_phu_v)}
+            - Gamma : \n{str(self.CAM.tf_phu_g)}
 
+########################## SETTLING TIME #########################
+
+    - Short period mode:
+        - Alpha Settling time   : {self.CAM.Tsa}
+        - Q Settling time       : {self.CAM.Tsq}
+        
+    - Phugoid mode:
+        - V Settling time       : {self.CAM.Tsv}
+        - Gamma Settling time   : {self.CAM.Tsg}
               """)
         
 
-    def plot_step_response(self):
+    def plot_step_response(self, save=False):
         # Plot short period mode step responses
-        plt.figure(figsize=(10, 6))
-        plt.plot(self.CAM.time_response_short_period_alpha, self.CAM.Y_step_response_short_period_alpha, label=r"$\alpha/\delta_m$")
-        plt.plot(self.CAM.time_response_short_period_q, self.CAM.Y_step_response_short_period_q, label=r"$q/\delta_m$")
-        plt.xlabel("Time (in seconds)")
-        plt.ylabel(r"Response ($\alpha$ in rad, $q$ in $rad.s^{-1}$)")
-        plt.title("Step Response of Short Period Mode Variables")
-        plt.suptitle("Dynamic Mode Analysis", fontsize=16)
-        plt.legend()
-        plt.grid()
         plt.show()
+        
+        if save == True:
+            output_path = "D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data"
 
-        # Plot phugoid mode step responses
-        plt.figure(figsize=(10, 6))
-        plt.plot(self.CAM.time_response_phugoid_v, self.CAM.Y_step_response_phugoid_v, label=r"$V/\delta_m$")
-        plt.plot(self.CAM.time_response_phugoid_gamma, self.CAM.Y_step_response_phugoid_gamma, label=r"$\gamma/\delta_m$")
-        plt.xlabel("Time (in seconds)")
-        plt.ylabel(r"Response ($V$ in $m.s^{-1}$, $\gamma$ in rad)")
-        plt.title("Step Response of Phugoid Mode Variables")
-        plt.suptitle("Dynamic Mode Analysis", fontsize=16)
-        plt.legend()
-        plt.grid()
-        plt.show()
+            if not os.path.exists(output_path):
+                os.makedirs(output_path)  # Crée les répertoires manquants
+            
+            self.CAM.fig_sp.save(os.path.join(output_path, 'Step_response_short_period_mode.png'))
+            self.CAM.fig_phu.save(os.path.join(output_path, 'Step_response_phugoid_mode.png'))
