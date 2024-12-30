@@ -1,8 +1,8 @@
 #import lib.utils as utils
 #from lib.utils import ControlAircraftModel
 
-from lib.test_control_aircraft_model import ControlAircraftModel
-from lib.test_display_CAM import Display_CAM, display_time_process
+from lib.control_aircraft_model import ControlAircraftModel
+from lib.display_CAM import Display_CAM, display_time_process
 import lib.sisopy31 as spy31
 import lib.atm_std as atm_std
 
