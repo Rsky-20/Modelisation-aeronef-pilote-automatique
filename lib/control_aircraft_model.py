@@ -115,6 +115,7 @@ class ControlAircraftModel:
         self.sp_eigenA, self.phu_eigenA = None, None
         self.sp_eigen_list, self.phu_eigen_list = [], []
         self.fig_phu, self.fig_sp, self.ax_phu, self.ax_sp = None, None, None, None
+        self.gain_k_sp_alpha, self.gain_k_sp_q,self.gain_k_phu_v, self.gain_k_phu_g = 1, 1, 1,1
 
     
     #############################################
@@ -378,6 +379,11 @@ class ControlAircraftModel:
         self.ss_phu_g, self.phu_wn_g, self.phu_damping_g, self.phu_eigenvalues_g, self.tf_phu_g = \
             self.compute_system(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_gamma, mode='ss2tf')
 
+        self.gain_k_sp_alpha = sisopy31.sisotool(1*minreal(self.ss_sp_alpha))
+        self.gain_k_sp_q = sisopy31.sisotool(1*minreal(self.ss_sp_q))
+        self.gain_k_phu_v = sisopy31.sisotool(1*minreal(self.ss_phu_v))
+        self.gain_k_phu_g = sisopy31.sisotool(1*minreal(self.ss_phu_g))
+        
         # Tracé des réponses en échelon pour short period
         self.fig_sp, self.ax_sp = plt.subplots()
         Ya, Ta = control.matlab.step(self.tf_sp_alpha, arange(0, 10, 0.01))

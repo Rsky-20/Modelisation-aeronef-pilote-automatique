@@ -305,6 +305,17 @@ EigenValues :
     - Phugoid mode:
         - V Settling time       : {self.CAM.Tsv}
         - Gamma Settling time   : {self.CAM.Tsg}
+        
+########################## GAIN with SISOPY31 #########################
+
+    - Short period mode:
+            - Alpha gain   : {self.CAM.gain_k_sp_alpha}
+            - Q gain       : {self.CAM.gain_k_sp_q}
+
+    - Phugoid mode:
+            - V gain       : {self.CAM.gain_k_phu_v}
+            - Gamma gain   : {self.CAM.gain_k_phu_g}
+        
               """)
         
 
