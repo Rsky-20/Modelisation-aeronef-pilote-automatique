@@ -22,10 +22,15 @@ except:
     
 import time
 
+OUTPUT_FIG_PATH = "D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data\\fig"
 
+if not os.path.exists(OUTPUT_FIG_PATH):
+    os.makedirs(OUTPUT_FIG_PATH)  # Crée les répertoires manquants
+            
 class ControlAircraftModel:
     def __init__(self, name='MIRAGE III class'):
         self.name = name
+        self.save_fig = False
         # Constants
         self.g = 9.81     # Gravitational acceleration (m/s^2)
         self.tau = 0.75   # time constant for transfert function (s)
@@ -36,7 +41,7 @@ class ControlAircraftModel:
         self.altitude = self.ft_to_m(22265)   # Aircraft cruise altitude (ft)
         
         if self.mach_speed == 1.88 and self.altitude == self.ft_to_m(22265):
-            self.hgeo, self.rho, self.V_s =  atm_std.get_cte_atm(self.altitude) #hgeo = , roh = sensité de l'air, V_s = vitesse du son 
+            _, self.rho, self.V_s =  atm_std.get_cte_atm(self.altitude) #hgeo = , roh = sensité de l'air, V_s = vitesse du son 
             self.rho = float(self.rho)
             self.V_s = float(self.V_s)
             self.V_a = self.mach_speed * self.V_s #aerodynamic speed of the aircraft (m/s)
@@ -107,7 +112,8 @@ class ControlAircraftModel:
         self.X_alpha = 0             # Coefficient lié à l'angle d'attaque
         
 
-        self.sys = None        
+        self.openloop_sys = None     
+        self.gain_Kr = 1
         self.openloop_eigenA = None
         self.openloop_eigen_list = []
         self.openloop_time, self.openloop_response = None, None
@@ -247,8 +253,8 @@ class ControlAircraftModel:
             alpha_eq_prec = alpha_eq
             C_x_delta_m = 2 * self.k * C_z_eq * self.C_z_delta_m
             delta_m_eq = self.delta_m_0 - ((C_x_eq * np.sin(alpha_eq) + C_z_eq * np.cos(alpha_eq)) /
-                                    (C_x_delta_m * np.sin(alpha_eq) + self.C_z_delta_m * np.cos(alpha_eq))) * self.X / (self.Y - self.X)
-            F_p_x_eq = self.Q * self.S * C_x_eq / np.cos(alpha_eq)
+                                    (C_x_delta_m * np.sin(alpha_eq) + self.C_z_delta_m * np.cos(alpha_eq))) * (self.X / (self.Y - self.X))
+            F_p_x_eq = (self.Q * self.S * C_x_eq) / np.cos(alpha_eq)
             alpha_eq = self.alpha_0 + C_z_eq / self.C_z_alpha - self.C_z_delta_m * delta_m_eq / self.C_z_alpha
             
             alpha_eq_list.append(alpha_eq)  # Mise à jour de la liste alpha_eq_list
@@ -285,7 +291,7 @@ class ControlAircraftModel:
         self.m_delta_m = self.compute_m_delta_m(self.Q, self.S, self.l_ref, self.C_m_delta_m, self.I_yy)
         self.X_v = self.compute_X_v(self.Q, self.S, self.C_x_eq, self.mass, self.V_eq)
         self.X_gamma = self.compute_X_gamma(self.g, self.gamma_eq, self.V_eq)
-        self.X_alpha = self.compute_X_gamma(self.g, self.gamma_eq, self.V_eq)
+        self.X_alpha = self.compute_X_alpha(self.F_eq,self.mass, self.V_eq, self.alpha_eq, self.Q, self.S, self.C_x_alpha)
         
     
     def K1(self, V_eq, m_alpha, Z_delta_m, m_delta_m, Z_alpha, m_q):
@@ -325,8 +331,8 @@ class ControlAircraftModel:
             zeta = -sigma / omega_n if omega_n != 0 else 0  # Évite la division par zéro
             self.openloop_eigen_list.append({'eigen' : pole, 'wn' : round(omega_n,4), 'Xi' : round(zeta, 4)})
 
-        self.sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
-        self.wn, self.damping, self.eigenvalues = control.damp(self.sys)
+        self.openloop_sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
+        self.wn, self.damping, self.eigenvalues = control.damp(self.openloop_sys)
 
 
     def compute_system(self, matrix_A, matrix_B, C_vector, mode='tf'):
@@ -338,7 +344,7 @@ class ControlAircraftModel:
             tf_system = control.ss2tf(ss_system)
         return ss_system, wn, damping, eigenvalues, tf_system
 
-    def step_response_graph(self, ax, fig, T1, Y1, T2, Y2, labels, title, xlabel, ylabel, fig_name=None):
+    def step_response_graph(self, ax, fig, T1, Y1, T2, Y2, labels, title, xlabel, ylabel, fig_name):
         ax.plot(T1, Y1, "b", label=labels[0], lw=2)
         ax.plot(T2, Y2, "r", label=labels[1], lw=2)
         ax.plot([0, T1[-1]], [Y1[-1], Y1[-1]], 'k--', lw=1)
@@ -353,8 +359,13 @@ class ControlAircraftModel:
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.legend()
-        if fig_name != None:
-            fig.canvas.manager.set_window_title(fig_name)
+        
+        ax.figure.canvas.manager.set_window_title(fig_name)
+        if self.save_fig:
+            ax.figure.savefig(os.path.join(OUTPUT_FIG_PATH, f'{fig_name}.png'))
+        else:
+            plt.show()
+
 
 
     def compute_transient_phase(self):
@@ -379,10 +390,10 @@ class ControlAircraftModel:
         self.ss_phu_g, self.phu_wn_g, self.phu_damping_g, self.phu_eigenvalues_g, self.tf_phu_g = \
             self.compute_system(self.matrix_A_phugoid, self.matrix_B_phugoid, self.C_phugoid_gamma, mode='ss2tf')
 
-        self.gain_k_sp_alpha = sisopy31.sisotool(1*minreal(self.ss_sp_alpha))
-        self.gain_k_sp_q = sisopy31.sisotool(1*minreal(self.ss_sp_q))
-        self.gain_k_phu_v = sisopy31.sisotool(1*minreal(self.ss_phu_v))
-        self.gain_k_phu_g = sisopy31.sisotool(1*minreal(self.ss_phu_g))
+        #self.gain_k_sp_alpha = sisopy31.sisotool(1*minreal(self.ss_sp_alpha))
+        #self.gain_k_sp_q = sisopy31.sisotool(1*minreal(self.ss_sp_q))
+        #self.gain_k_phu_v = sisopy31.sisotool(1*minreal(self.ss_phu_v))
+        #self.gain_k_phu_g = sisopy31.sisotool(1*minreal(self.ss_phu_g))
         
         # Tracé des réponses en échelon pour short period
         self.fig_sp, self.ax_sp = plt.subplots()
@@ -416,41 +427,172 @@ class ControlAircraftModel:
         _, _, self.Tsq = step_info(Tq, Yq)
         
         _, _, self.Tsv = step_info(Tv, Yv)
-        _, _, self.Tsg = step_info(Tg, Yg)
-         
-    
-    def compute_matrix_for_input(self, label:str):
-        if label == 'q':
-            self.matrix_A_q = self.matrix_A[1:,1:]
-            self.matrix_B_q = self.matrix_B[1:]
-            self.matrix_C_q = np.zeros((5,1))
-            self.matrix_C_q[2] = 1
-            self.matrix_C_q = self.matrix_C_q.T
-        if label == 'gamma':
-            self.matrix_A_gamma = self.matrix_A_q 
-            self.matrix_B_gamma = self.matrix_B[1:]
-            self.matrix_C_gamma = np.zeros((5,1))
-            self.matrix_C_gamma[0] = 1
-            self.matrix_C_gamma = self.matrix_C_gamma.T
-        if label == 'z':
-            self.matrix_A_z = self.matrix_A[1:,1:]
-            self.matrix_B_z = self.matrix_B[1:]
-            self.matrix_C_z = np.zeros((5,1))
-            self.matrix_C_z[4] = 1
-            self.matrix_C_z = self.matrix_C_z.T
-        if label == 'alpha':
-            self.matrix_A_alpha = self.matrix_A[1:,1:]
-            self.matrix_B_alpha = self.matrix_B[1:]
-            self.matrix_C_alpha = np.zeros((5,1))
-            self.matrix_C_alpha[1] = 1
-            self.matrix_C_alpha = self.matrix_C_alpha.T
-        if label == 'theta':
-            self.matrix_A_theta = self.matrix_A[1:,1:]
-            self.matrix_B_theta = self.matrix_B[1:]
-            self.matrix_C_theta = np.zeros((5,1))
-            self.matrix_C_theta[3] = 1
-            self.matrix_C_theta = self.matrix_C_theta.T
+        _, _, self.Tsg = step_info(Tg, Yg)        
         
+    
+    def compute_feedback_loop(self, label: str):
+        def plot_step_response(ax, T1, Y1, labels, title, xlabel, ylabel, fig_name=None):
+                ax.plot(T1, Y1, "b", label=labels[0], lw=2)
+                ax.plot([0, T1[-1]], [Y1[-1], Y1[-1]], 'k--', lw=1)
+                ax.plot([0, T1[-1]], [1.05 * Y1[-1], 1.05 * Y1[-1]], 'k--', lw=1)
+                ax.plot([0, T1[-1]], [0.95 * Y1[-1], 0.95 * Y1[-1]], 'k--', lw=1)
+                ax.minorticks_on()
+                ax.grid(True, which='both')
+                ax.set_title(title)
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel(ylabel)
+                ax.legend()
+
+                # Set window title and save figure if required
+                if fig_name:
+                    ax.figure.canvas.manager.set_window_title(fig_name)
+                    if self.save_fig:
+                        ax.figure.savefig(os.path.join(OUTPUT_FIG_PATH, f'{fig_name}.png'))
+                else:
+                    plt.show()
+                    
+        if label == 'q':
+            # Calcul pour q
+            self.matrix_A_new = self.matrix_A[1:, 1:]
+            self.matrix_B_new = self.matrix_B[1:]
+            self.matrix_C_q = np.zeros((5, 1))
+            self.matrix_C_q[2] = 1  # 2 correspond à l'index de q
+            self.matrix_C_q = self.matrix_C_q.T
+            self.sys_q = control.ss(self.matrix_A_new, self.matrix_B_new, self.matrix_C_q, 0)
+            self.TF_q = control.ss2tf(self.sys_q)
+            self.gain_Kr = -0.07#sisopy31.sisotool(1 * minreal(self.TF_q))
+            self.matrix_A_q = self.matrix_A_new - self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q.T)
+            self.matrix_B_q = self.gain_Kr * self.matrix_B_new
+            self.matrix_D_q = self.gain_Kr * self.matrix_D
+            self.cloadloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
+
+            control.matlab.damp(self.cloadloop_sys_q)
+            self.Closed_Tf_ss_q = control.tf(self.cloadloop_sys_q)
+
+            fig, ax = plt.subplots()
+
+            Yqcl, Tqcl = control.matlab.step(self.Closed_Tf_ss_q, np.arange(0, 5, 0.01))
+
+            plot_step_response(
+                ax=ax,
+                T1=Tqcl,
+                Y1=Yqcl,
+                labels=[r"$q/q_c$"],
+                title=r"Step response $q/q_c$",
+                xlabel="Time (s)",
+                ylabel=r"$q$ (rad/s)",
+                fig_name="Step_Response_q_qc",
+            )
+            
+            def plot_step_response_washout(t, y_alpha, y_alpha_no_washout, y_alpha_washout, title, xlabel, ylabel, fig_name=None):
+                plt.figure()
+                plt.plot(t, y_alpha, label="Alpha alpha", color="red")
+                plt.plot(t, y_alpha_no_washout, label="Alpha alpha no washout", color="blue")
+                plt.plot(t, y_alpha_washout, linestyle=(0, (5, 10)), color="green", label="Alpha alpha washout")
+                plt.title(title)
+                plt.grid()
+                plt.legend()
+                plt.xlabel(xlabel)
+                plt.ylabel(ylabel)
+
+                if fig_name:
+                    if self.save_fig:
+                        plt.savefig(os.path.join(OUTPUT_FIG_PATH, f"{fig_name}.png"))
+                    else:
+                        plt.show()
+                else:
+                    plt.show()
+            
+            _tau_ = 0.7
+            tf_washout_filter = control.tf([_tau_, 0], [_tau_, 1])
+            tf_washout_filter_closed = control.feedback(self.gain_Kr, self.TF_q * tf_washout_filter)
+
+            C_alpha = [0, 1, 0, 0, 0]
+            ss_alpha = control.ss(self.matrix_A_new, self.matrix_B_new, C_alpha, 0)
+
+            tf_alpha = control.tf(ss_alpha)
+            tf_alpha_washout = control.series(1 / self.gain_Kr, tf_washout_filter_closed, tf_alpha)
+            tf_alpha_no_washout = control.series(1 / self.gain_Kr, control.feedback(self.gain_Kr, self.TF_q), tf_alpha)
+            t = np.arange(0, 15, 0.01)
+
+            y_alpha, t_alpha = control.matlab.step(tf_alpha, t)
+            y_alpha_no_washout, t_alpha_no_washout = control.matlab.step(tf_alpha_no_washout, t)
+            y_alpha_washout, t_alpha_washout = control.matlab.step(tf_alpha_washout, t)
+
+            plot_step_response_washout(
+                t=t_alpha,
+                y_alpha=y_alpha,
+                y_alpha_no_washout=y_alpha_no_washout,
+                y_alpha_washout=y_alpha_washout,
+                title="Washout filter",
+                xlabel="Time (s)",
+                ylabel=r"$\alpha$",
+                fig_name="Washout_Filter_Alpha",
+            )
+                    
+
+        elif label == 'gamma':
+            # Calcul pour gamma
+            self.matrix_C_gamma = np.zeros((5, 1))
+            self.matrix_C_gamma[0] = 1  # 0 correspond à l'index de gamma
+            self.matrix_C_gamma = self.matrix_C_gamma.T
+            self.sys_gamma = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_gamma, 0)
+            self.TF_gamma = control.ss2tf(self.sys_gamma)
+            self.gain_Kg = 16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
+            self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma.T)
+            self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
+            self.matrix_D_gamma = self.gain_Kg * self.matrix_D
+
+            self.cloadloop_sys_gamma = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_gamma, 0)
+            control.matlab.damp(self.cloadloop_sys_gamma)
+
+            self.Closed_Tf_ss_gamma = control.tf(self.cloadloop_sys_gamma)
+            
+            fig, ax = plt.subplots()
+            Y_gamma_cl, T_gamma_cl = control.matlab.step(self.Closed_Tf_ss_gamma, np.arange(0, 5, 0.01))
+
+            plot_step_response(
+                ax=ax,
+                T1=T_gamma_cl,
+                Y1=Y_gamma_cl,
+                labels=[r"$gamma/gamma_c$"],
+                title=r"Step response $gamma/gamma_c$",
+                xlabel="Time (s)",
+                ylabel=r"$q$ (rad/s)",
+                fig_name="Step_Response_gamma_gammac",
+            )
+
+        elif label == 'z':
+            # Calcul pour z
+            self.matrix_C_z = np.zeros((5, 1))
+            self.matrix_C_z[4] = 1  # 4 correspond à l'index de z
+            self.matrix_C_z = self.matrix_C_z.T
+            self.sys_z = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_z, 0)
+            self.TF_z = control.ss2tf(self.sys_z)
+            self.gain_Kz = 0.00010 #sisopy31.sisotool(1 * minreal(self.TF_z))
+            self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z.T)
+            self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
+            self.matrix_D_z = self.gain_Kz * self.matrix_D
+
+            self.cloadloop_sys_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, 0)
+            control.matlab.damp(self.cloadloop_sys_z)
+
+            self.Closed_Tf_ss_z = control.tf(self.cloadloop_sys_z)
+            
+            fig, ax = plt.subplots()
+            Y_z_cl, T_z_cl = control.matlab.step(self.Closed_Tf_ss_z, np.arange(0, 5, 0.01))
+            plot_step_response(
+                ax=ax,
+                T1=T_z_cl,
+                Y1=Y_z_cl,
+                labels=[r"$z/z_c$"],
+                title=r"Step response $z/z_c$",
+                xlabel="Time (s)",
+                ylabel=r"$q$ (rad/s)",
+                fig_name="Step_Response_z_zc",
+            )
+
+
 
     def ft_to_m(self, feet):
         """

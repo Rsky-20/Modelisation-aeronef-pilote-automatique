@@ -7,6 +7,8 @@ import math
 import os
 import sys
 import traceback
+import inspect
+
 
 try:
     from sisopy31 import *
@@ -70,21 +72,25 @@ BG_BRIGHT_WHITE = "\033[107m"
 
 
 def display_time_process(func, *args, **kwargs):
-    """
-    Mesure le temps d'exécution d'une fonction ou méthode.
-    
-    :param func: La fonction ou méthode à mesurer.
-    :param args: Les arguments positionnels pour la fonction/méthode.
-    :param kwargs: Les arguments nommés pour la fonction/méthode.
-    :return: Le résultat de l'exécution de la fonction/méthode.
-    """
     try:
         start_time = time.time()
         result = func(*args, **kwargs)  # Appelle la fonction/méthode avec les arguments
         end_time = time.time()
 
         execution_time = end_time - start_time
-        print(f"[{YELLOW}INFO{RESET}] - {BOLD}'{ITALIC}{func.__name__}{RESET}{BOLD}'{RESET} status : {GREEN}OK{RESET}")
+        func_name = func.__name__
+
+        # Si la fonction est une lambda, tente de récupérer son code source
+        if func_name == '<lambda>':
+            try:
+                func_code = inspect.getsource(func).strip()
+                # Extrait le contenu après le `lambda:` dans le code source
+                func_body = func_code.split(':', 1)[1].strip()
+                func_name = f"{func_body[:-1]}"
+            except Exception:
+                func_name = "<lambda> (func.__name__ unavailable)"
+
+        print(f"[{YELLOW}INFO{RESET}] - {BOLD}'{ITALIC}{func_name}{RESET}{BOLD}'{RESET} status : {GREEN}OK{RESET}")
         print(f"[{YELLOW}INFO{RESET}] - {BLUE}Processing time : {execution_time:.6f}s{RESET}")
         return result
     except ValueError as err:
@@ -317,17 +323,23 @@ EigenValues :
             - Gamma gain   : {self.CAM.gain_k_phu_g}
         
               """)
-        
 
-    def plot_step_response(self, save=False):
-        # Plot short period mode step responses
-        plt.show()
-        
-        if save == True:
-            output_path = "D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data"
+    def closedloop_TF(self, label:str):
+        print(f"""
+########################## Transfer Function of the {label} closed loop #########################
+                  """)
+        if label == 'q':
+            print(self.CAM.Closed_Tf_ss_q)
+        if label == 'gamma':
+            print(self.CAM.Closed_Tf_ss_gamma)
+        if label == 'z':
+            print(self.CAM.Closed_Tf_ss_z)
 
-            if not os.path.exists(output_path):
-                os.makedirs(output_path)  # Crée les répertoires manquants
-            
-            self.CAM.fig_sp.save(os.path.join(output_path, 'Step_response_short_period_mode.png'))
-            self.CAM.fig_phu.save(os.path.join(output_path, 'Step_response_phugoid_mode.png'))
+    def gain_k(self):
+        print(f"""
+########################## GAIN with SISOPY31 #########################
+
+>> Gain K for Q feedback loop : {self.CAM.gain_Kr}
+>> Gain K for gamma feedback loop : {self.CAM.gain_Kg}
+>> Gain K for z feedback loop : {self.CAM.gain_Kz}
+""")
