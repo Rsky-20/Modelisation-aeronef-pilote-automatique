@@ -47,7 +47,6 @@ def main():
     display_cam.closedloop_TF('z')
     
     display_cam.gain_k()
-    display_cam.matrix()
 
 
 if __name__ == '__main__':
