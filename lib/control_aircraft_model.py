@@ -22,8 +22,11 @@ except:
     
 import time
 
-OUTPUT_FIG_PATH = "D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data\\fig"
-
+try:
+    OUTPUT_FIG_PATH = "D:\\IPSA\\Aero5\\2.12_au511_Modelisation_aeronef_pilote_automatique\\Modelisation-aeronef-pilote-automatique\\data\\fig"
+except:
+    OUTPUT_FIG_PATH = "C:\\Users\\valen\\OneDrive\\Documents\\IPSA\\5A\\pilote auto\\projet dernière version\\fig"
+    
 if not os.path.exists(OUTPUT_FIG_PATH):
     os.makedirs(OUTPUT_FIG_PATH)  # Crée les répertoires manquants
             
@@ -216,7 +219,7 @@ class ControlAircraftModel:
 
     
     def compute_B_array(self, Z_delta_m, m_delta_m):
-        self.matrix_B = np.array([0, Z_delta_m, -Z_delta_m, m_delta_m, 0, 0]).T
+        self.matrix_B = np.array([[0],[Z_delta_m],[-Z_delta_m],[m_delta_m],[0],[0]])
         
         
     def compute_C_array(self):
@@ -452,20 +455,36 @@ class ControlAircraftModel:
                     plt.show()
                     
         if label == 'q':
-            # Calcul pour q
+            # matrix definition 
             self.matrix_A_new = self.matrix_A[1:, 1:]
             self.matrix_B_new = self.matrix_B[1:]
-            self.matrix_C_q = np.zeros((5, 1))
-            self.matrix_C_q[2] = 1  # 2 correspond à l'index de q
-            self.matrix_C_q = self.matrix_C_q.T
+            self.matrix_C_q = np.array([[0], [0], [1], [0], [0]]).T
+            
+            #open loop definition 
             self.sys_q = control.ss(self.matrix_A_new, self.matrix_B_new, self.matrix_C_q, 0)
             self.TF_q = control.ss2tf(self.sys_q)
-            self.gain_Kr = -0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
-            self.matrix_A_q = self.matrix_A_new - self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q.T)
+            print(f"voici la matrice q: {self.TF_q}")
+            #close loop matrix definition
+            self.gain_Kr = -0.20954#-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
+            self.matrix_A_q = self.matrix_A_new - (self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q))
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
+            
+            #we plot the result
+            fig, ax = plt.subplots()
+            Yqol, Tqol = control.matlab.step(self.TF_q, np.arange(0, 5, 0.01))
+            plot_step_response(
+                ax=ax,
+                T1=Tqol,
+                Y1=Yqol,
+                labels=[r"$q$"],
+                title=r"Step response open loop $q$",
+                xlabel="Time (s)",
+                ylabel=r"$q$ (rad/s)",
+                fig_name="Step_Response_open_loop_q",
+            )
+            
             self.closedloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
-
             control.matlab.damp(self.closedloop_sys_q)
             self.Closed_Tf_ss_q = control.tf(self.closedloop_sys_q)
 
@@ -538,7 +557,7 @@ class ControlAircraftModel:
             self.sys_gamma = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_gamma, 0)
             self.TF_gamma = control.ss2tf(self.sys_gamma)
             self.gain_Kg = 16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
-            self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma.T)
+            self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma)
             self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
             self.matrix_D_gamma = self.gain_Kg * self.matrix_D
 
@@ -568,8 +587,8 @@ class ControlAircraftModel:
             self.matrix_C_z = self.matrix_C_z.T
             self.sys_z = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_z, 0)
             self.TF_z = control.ss2tf(self.sys_z)
-            self.gain_Kz = 0.00010 #sisopy31.sisotool(1 * minreal(self.TF_z))
-            self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z.T)
+            self.gain_Kz = sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
+            self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z)
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
             self.matrix_D_z = self.gain_Kz * self.matrix_D
 
@@ -587,7 +606,7 @@ class ControlAircraftModel:
                 labels=[r"$z/z_c$"],
                 title=r"Step response $z/z_c$",
                 xlabel="Time (s)",
-                ylabel=r"$q$ (rad/s)",
+                ylabel=r"$z$ (rad/s)",
                 fig_name="Step_Response_z_zc",
             )
             
