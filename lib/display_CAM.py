@@ -339,3 +339,13 @@ EigenValues :
             print(self.CAM.Closed_Tf_ss_gamma)
         if label == 'z':
             print(self.CAM.Closed_Tf_ss_z)
+
+
+    def gain_k(self):
+        print(f"""
+########################## GAIN with SISOPY31 #########################
+
+>> Gain K for Q feedback loop : {self.CAM.gain_Kr}
+>> Gain K for gamma feedback loop : {self.CAM.gain_Kg}
+>> Gain K for z feedback loop : {self.CAM.gain_Kz}
+""")

@@ -464,10 +464,10 @@ class ControlAircraftModel:
             self.matrix_A_q = self.matrix_A_new - self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q.T)
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
-            self.cloadloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
+            self.closedloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
 
-            control.matlab.damp(self.cloadloop_sys_q)
-            self.Closed_Tf_ss_q = control.tf(self.cloadloop_sys_q)
+            control.matlab.damp(self.closedloop_sys_q)
+            self.Closed_Tf_ss_q = control.tf(self.closedloop_sys_q)
 
             fig, ax = plt.subplots()
 
@@ -542,10 +542,10 @@ class ControlAircraftModel:
             self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
             self.matrix_D_gamma = self.gain_Kg * self.matrix_D
 
-            self.cloadloop_sys_gamma = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_gamma, 0)
-            control.matlab.damp(self.cloadloop_sys_gamma)
+            self.closedloop_sys_gamma = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_gamma, 0)
+            control.matlab.damp(self.closedloop_sys_gamma)
 
-            self.Closed_Tf_ss_gamma = control.tf(self.cloadloop_sys_gamma)
+            self.Closed_Tf_ss_gamma = control.tf(self.closedloop_sys_gamma)
             
             fig, ax = plt.subplots()
             Y_gamma_cl, T_gamma_cl = control.matlab.step(self.Closed_Tf_ss_gamma, np.arange(0, 5, 0.01))
@@ -557,7 +557,7 @@ class ControlAircraftModel:
                 labels=[r"$gamma/gamma_c$"],
                 title=r"Step response $gamma/gamma_c$",
                 xlabel="Time (s)",
-                ylabel=r"$q$ (rad/s)",
+                ylabel=r"$gamma$ (rad/s)",
                 fig_name="Step_Response_gamma_gammac",
             )
 
@@ -573,10 +573,10 @@ class ControlAircraftModel:
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
             self.matrix_D_z = self.gain_Kz * self.matrix_D
 
-            self.cloadloop_sys_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, 0)
-            control.matlab.damp(self.cloadloop_sys_z)
+            self.closedloop_sys_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, 0)
+            control.matlab.damp(self.closedloop_sys_z)
 
-            self.Closed_Tf_ss_z = control.tf(self.cloadloop_sys_z)
+            self.Closed_Tf_ss_z = control.tf(self.closedloop_sys_z)
             
             fig, ax = plt.subplots()
             Y_z_cl, T_z_cl = control.matlab.step(self.Closed_Tf_ss_z, np.arange(0, 5, 0.01))
@@ -590,6 +590,8 @@ class ControlAircraftModel:
                 ylabel=r"$q$ (rad/s)",
                 fig_name="Step_Response_z_zc",
             )
+            
+            #self.closed_state_space_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, self.matrix_D_z)
 
 
     def ft_to_m(self, feet):
