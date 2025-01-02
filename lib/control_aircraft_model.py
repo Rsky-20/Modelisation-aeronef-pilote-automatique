@@ -7,6 +7,11 @@ import control.matlab
 import math
 import os
 import sys
+import contextlib
+import io
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 
 try:
     from sisopy31 import *
@@ -335,12 +340,14 @@ class ControlAircraftModel:
             self.openloop_eigen_list.append({'eigen' : pole, 'wn' : round(omega_n,4), 'Xi' : round(zeta, 4)})
 
         self.openloop_sys = control.ss(self.matrix_A, self.matrix_B, self.matrix_C, self.matrix_D)
-        self.wn, self.damping, self.eigenvalues = control.damp(self.openloop_sys)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.open_loop_wn, self.open_loop_damping, self.open_loop_eigenvalues = control.damp(self.openloop_sys)
 
 
     def compute_system(self, matrix_A, matrix_B, C_vector, mode='tf'):
         ss_system = control.ss(matrix_A, matrix_B, C_vector.T, 0)
-        wn, damping, eigenvalues = control.damp(ss_system)
+        with contextlib.redirect_stdout(io.StringIO()):
+            wn, damping, eigenvalues = control.damp(ss_system)
         if mode == 'tf':
             tf_system = control.ss2tf(ss_system)
         else:
@@ -463,13 +470,15 @@ class ControlAircraftModel:
             #open loop definition 
             self.sys_q = control.ss(self.matrix_A_new, self.matrix_B_new, self.matrix_C_q, 0)
             self.TF_q = control.ss2tf(self.sys_q)
-            print(f"voici la matrice q: {self.TF_q}")
+        
+        
             #close loop matrix definition
             self.gain_Kr = -0.20954#-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
             self.matrix_A_q = self.matrix_A_new - (self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q))
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
-            
+
+
             #we plot the result
             fig, ax = plt.subplots()
             Yqol, Tqol = control.matlab.step(self.TF_q, np.arange(0, 5, 0.01))
@@ -485,7 +494,10 @@ class ControlAircraftModel:
             )
             
             self.closedloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
-            control.matlab.damp(self.closedloop_sys_q)
+            
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.damp_closeloop_q = control.matlab.damp(self.closedloop_sys_q)
+            
             self.Closed_Tf_ss_q = control.tf(self.closedloop_sys_q)
 
             fig, ax = plt.subplots()
@@ -521,8 +533,10 @@ class ControlAircraftModel:
                         plt.show()
                 else:
                     plt.show()
+                    
+            tau = (2 / self.damp_closeloop_q[0][-1])+0.001
             
-            tf_washout_filter = control.tf([self.tau, 0], [self.tau, 1])
+            tf_washout_filter = control.tf([tau, 0], [tau, 1])
             tf_washout_filter_closed = control.feedback(self.gain_Kr, self.TF_q * tf_washout_filter)
 
             C_alpha = [0, 1, 0, 0, 0]
@@ -554,19 +568,25 @@ class ControlAircraftModel:
             self.matrix_C_gamma = np.zeros((5, 1))
             self.matrix_C_gamma[0] = 1  # 0 correspond à l'index de gamma
             self.matrix_C_gamma = self.matrix_C_gamma.T
-            self.sys_gamma = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_gamma, 0)
-            self.TF_gamma = control.ss2tf(self.sys_gamma)
-            self.gain_Kg = 16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
+            
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.sys_gamma = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_gamma, 0)
+                self.TF_gamma = control.tf(minreal(self.sys_gamma))
+                
+            self.gain_Kg = 16.4 #sisopy31.sisotool(self.TF_gamma) #16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
             self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma)
             self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
             self.matrix_D_gamma = self.gain_Kg * self.matrix_D
 
             self.closedloop_sys_gamma = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_gamma, 0)
-            control.matlab.damp(self.closedloop_sys_gamma)
-
+            
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.damp_closedloop_sys_gamma = control.matlab.damp(self.closedloop_sys_gamma)
+            
             self.Closed_Tf_ss_gamma = control.tf(self.closedloop_sys_gamma)
             
             fig, ax = plt.subplots()
+            
             Y_gamma_cl, T_gamma_cl = control.matlab.step(self.Closed_Tf_ss_gamma, np.arange(0, 5, 0.01))
 
             plot_step_response(
@@ -587,13 +607,15 @@ class ControlAircraftModel:
             self.matrix_C_z = self.matrix_C_z.T
             self.sys_z = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_z, 0)
             self.TF_z = control.ss2tf(self.sys_z)
-            self.gain_Kz = sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
+            self.gain_Kz = 0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
             self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z)
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
             self.matrix_D_z = self.gain_Kz * self.matrix_D
 
             self.closedloop_sys_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, 0)
-            control.matlab.damp(self.closedloop_sys_z)
+            
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.damp_closedloop_sys_z = control.matlab.damp(self.closedloop_sys_z)
 
             self.Closed_Tf_ss_z = control.tf(self.closedloop_sys_z)
             
@@ -612,6 +634,47 @@ class ControlAircraftModel:
             
             #self.closed_state_space_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, self.matrix_D_z)
 
+    def saturation(self):
+        def f(csat, TF, alpha_max):
+            response, _ = control.matlab.step(csat * TF)
+            max_response = np.max(response)  
+            return max_response - alpha_max
+
+        def dichotomie(f,a,b,epsilon,TF,alpha_max):
+            ecart = 10
+            while ecart > epsilon:
+                avrage = (a + b) / 2
+                ecart = abs(b - a)
+                if f(avrage, TF, alpha_max) == 0:
+                    return avrage
+                elif f(a, TF, alpha_max)*f(avrage, TF, alpha_max) > 0:
+                    a = avrage
+                else:
+                    b = avrage
+            return a, b
+
+        self.matrix_C_gamma_sat = np.zeros((5, 1))
+        self.matrix_C_gamma_sat[1] = 1  #because the output is alpha
+        self.matrix_C_gamma_sat = self.matrix_C_gamma_sat.T
+        
+        self.closedloop_sys_gamma_sat = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_gamma_sat, 0)
+        self.Closed_Tf_ss_gamma_sat = control.tf(self.closedloop_sys_gamma_sat)
+
+        self.delta_n_z = 3.2*self.g
+        alpha_max = self.alpha_eq+(self.alpha_eq-self.alpha_0)*self.delta_n_z
+
+        
+        gamma_min, gamma_max = dichotomie(f,0,10,1e-9,self.Closed_Tf_ss_gamma_sat,alpha_max)
+
+        self.gamma_opt = (gamma_min + gamma_max)/2
+
+
+        alpha_max_step = np.max(control.matlab.step(self.Closed_Tf_ss_gamma_sat)[0])
+        self.gamma_opt_2 = alpha_max/alpha_max_step
+
+        
+        
+        
 
     def ft_to_m(self, feet):
         """

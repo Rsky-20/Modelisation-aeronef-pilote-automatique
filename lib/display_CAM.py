@@ -246,13 +246,10 @@ Gamma à l'équilibre (gamma_eq):                      {self.CAM.gamma_eq:.6f}
 ##############################################################
     """)
         
+        
     def open_loop(self):
         print(f"""
-####################### EigenValues of A #######################
-EigenValues :
-{self.CAM.openloop_eigenA}
-
-####################### Damping ratio and Pulsation #######################
+####################### Eigenvalues, Damping ratio and Pulsation #######################
                 """)
         for eigen in self.CAM.openloop_eigen_list:
             print(f"Pôle : {eigen['eigen']}, wn : {eigen['wn']}, Xi : {eigen['Xi']}")
@@ -329,16 +326,49 @@ EigenValues :
 ########################## Transfer Function of the {label} closed loop #########################
                   """)
         if label == 'q':
-            print("------------------new A matrix------------------")
+            print("------------------- new A matrix -------------------")
             print(self.CAM.matrix_A_q)
-            print("\n------------------new B matrix------------------")
+            print("\n------------------ new B matrix ------------------")
             print(self.CAM.matrix_B_q)
-            print("\n--------and the close transfer function---------")
-            print(self.CAM.Closed_Tf_ss_q)
+            print("\n----------------- q TF open loop -----------------")
+            self.display_tf(self.CAM.TF_q,'q')
+            print("\n--------- State Space représentation ---------")
+            print("\n------------------ B_q matrix ------------------")
+            print(self.CAM.matrix_A_q)
+            print("\n------------------ B_q matrix ------------------")
+            print(self.CAM.matrix_B_q)
+            print("\n-------- Close Transfer Function ---------")
+            self.display_tf(self.CAM.Closed_Tf_ss_q,'q')
+            print("\n--------------- Damp Close Loop q ---------------")
+            self.display_damp(self.CAM.damp_closedloop_sys_q[2], self.CAM.damp_closedloop_sys_q[1], self.CAM.damp_closedloop_sys_q[0])
+
+            
         if label == 'gamma':
-            print(self.CAM.Closed_Tf_ss_gamma)
+            print("------------------- A_gamma matrix -------------------")
+            print(self.CAM.matrix_A_gamma)
+            print("\n------------------ B_gamma matrix ------------------")
+            print(self.CAM.matrix_B_gamma)
+            print("\n----------------- gamma TF open loop -----------------")
+            self.display_tf(self.CAM.TF_gamma,'gamma')
+            print("\n-------- Close Transfer Function ---------")
+            self.display_tf(self.CAM.Closed_Tf_ss_gamma,'gamma')
+            print("\n--------------- Damp close loop gamma ---------------")
+            self.display_damp(self.CAM.damp_closedloop_sys_gamma[2], self.CAM.damp_closedloop_sys_gamma[1], self.CAM.damp_closedloop_sys_gamma[0])
+            
+            #print(self.CAM.Closed_Tf_ss_gamma)
+            
         if label == 'z':
-            print(self.CAM.Closed_Tf_ss_z)
+            print("------------------- A_z matrix -------------------")
+            print(self.CAM.matrix_A_z)
+            print("\n------------------ B_z matrix ------------------")
+            print(self.CAM.matrix_B_z)
+            print("\n----------------- z TF open loop -----------------")
+            self.display_tf(self.CAM.TF_z,'z')
+            print("\n-------- Close Transfer Function ---------")
+            self.display_tf(self.CAM.Closed_Tf_ss_z,'z')
+            print("\n--------------- Damp close loop z ---------------")
+            self.display_damp(self.CAM.damp_closedloop_sys_z[2], self.CAM.damp_closedloop_sys_z[1], self.CAM.damp_closedloop_sys_z[0])
+            #print(self.CAM.Closed_Tf_ss_z)
 
 
     def gain_k(self):
@@ -349,3 +379,50 @@ EigenValues :
 >> Gain K for gamma feedback loop : {self.CAM.gain_Kg}
 >> Gain K for z feedback loop : {self.CAM.gain_Kz}
 """)
+    
+    
+    def saturation(self):
+        print('optimal gamma (DICHOTOMIE METHOD)')
+        print("gamma = ", self.CAM.gamma_opt)
+
+        print('optimal gamma (DIVIDING METHOD)')
+        print("gamma = ", self.CAM.gamma_opt_2)
+
+
+    def display_damp(self, eigenvalues, dampings, frequencies):
+        """
+        Display the damping characteristics of the system in a readable format.
+        The function expects the method `control.matlab.damp(self.closedloop_sys_q)`
+        to return three arrays: frequencies, damping ratios, and poles.
+        """
+        
+        # Header
+        header = f"{'Eigenvalue (pole)':>20} {'Damping':>15} {'Frequency':>15}"
+        print(header)
+        print("=" * len(header))
+        
+        # Iterate through the data and format each row
+        for eigenvalue, damping, frequency in zip(eigenvalues, dampings, frequencies):
+            pole_str = f"{np.real(eigenvalue):.3f} {np.imag(eigenvalue):+.3f}j" if np.imag(eigenvalue) != 0 else f"{np.real(eigenvalue):.3f}"
+            damping_str = f"{damping:.4f}" if not np.isnan(damping) else "1"
+            frequency_str = f"{frequency:.3f}" if frequency != 0 else "0"
+            print(f"{pole_str:>20} {damping_str:>15} {frequency_str:>15}")
+
+
+    def display_tf(self, sys, label):
+        # Extraire les polynômes
+        num, den = sys.num[0][0], sys.den[0][0]
+        
+        # Formater les chaînes
+        num_str = " + ".join([f"{coef:.4g}s^{len(num)-i-1}" for i, coef in enumerate(num) if coef != 0])
+        den_str = " + ".join([f"{coef:.4g}s^{len(den)-i-1}" for i, coef in enumerate(den) if coef != 0])
+        
+        # Calculer la longueur maximale
+        max_len = max(len(num_str), len(den_str))
+        tag = f"TF_{label} ="
+        
+        # Afficher la fonction de transfert
+        print("")
+        print(" "*len(tag), f"{num_str}")
+        print(tag, "-" * max_len)
+        print(" "*len(tag), f"{den_str}")
