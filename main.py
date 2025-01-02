@@ -9,7 +9,7 @@ import lib.atm_std as atm_std
 
 def main():
     aircraft = ControlAircraftModel()
-    aircraft.save_fig = True
+    aircraft.save_fig = False
     display_cam = Display_CAM(aircraft)
     
     display_cam.process('Aircraft Characteristics')

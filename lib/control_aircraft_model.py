@@ -460,7 +460,7 @@ class ControlAircraftModel:
             self.matrix_C_q = self.matrix_C_q.T
             self.sys_q = control.ss(self.matrix_A_new, self.matrix_B_new, self.matrix_C_q, 0)
             self.TF_q = control.ss2tf(self.sys_q)
-            self.gain_Kr = -0.07#sisopy31.sisotool(1 * minreal(self.TF_q))
+            self.gain_Kr = -0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
             self.matrix_A_q = self.matrix_A_new - self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q.T)
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
@@ -503,8 +503,7 @@ class ControlAircraftModel:
                 else:
                     plt.show()
             
-            _tau_ = 0.7
-            tf_washout_filter = control.tf([_tau_, 0], [_tau_, 1])
+            tf_washout_filter = control.tf([self.tau, 0], [self.tau, 1])
             tf_washout_filter_closed = control.feedback(self.gain_Kr, self.TF_q * tf_washout_filter)
 
             C_alpha = [0, 1, 0, 0, 0]
@@ -591,7 +590,6 @@ class ControlAircraftModel:
                 ylabel=r"$q$ (rad/s)",
                 fig_name="Step_Response_z_zc",
             )
-
 
 
     def ft_to_m(self, feet):
