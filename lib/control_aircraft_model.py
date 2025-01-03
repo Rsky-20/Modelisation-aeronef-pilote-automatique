@@ -590,7 +590,7 @@ class ControlAircraftModel:
 
             
             #calcule of the gamma stape space representation 
-            self.gain_Kg = 16.4 #sisopy31.sisotool(self.TF_gamma) #16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
+            self.gain_Kg = 22.76959 #sisopy31.sisotool(self.TF_gamma)
             self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma)
             self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
             self.matrix_D_gamma = self.gain_Kg * self.matrix_D
@@ -639,7 +639,7 @@ class ControlAircraftModel:
                 fig_name="Step_Response_z_ol",
             )            
             
-            self.gain_Kz = 0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
+            self.gain_Kz = sisopy31.sisotool(1 * minreal(self.TF_z)) # 0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
             self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z)
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
             self.matrix_D_z = self.gain_Kz * self.matrix_D
