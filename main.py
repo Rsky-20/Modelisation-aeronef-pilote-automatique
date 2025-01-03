@@ -18,7 +18,7 @@ def clear_console():
 
 # Function to pause and wait for user input
 def pause():
-    input("\nPress Enter to return to the menu...")
+    input("\nPress Enter to continue...")
 
 def main_menu():
     """Menu interactif pour naviguer entre les parties."""
@@ -47,6 +47,7 @@ def main_menu():
         display_time_process(lambda: aircraft.compute_feedback_loop('gamma'))
         display_time_process(lambda: aircraft.compute_feedback_loop('z'))
         display_time_process(lambda: aircraft.saturation())
+        pause()
     else:
         aircraft.equilibrium_conditions()
         aircraft.compute_dynamic_matrix()
@@ -104,7 +105,6 @@ def main_menu():
             clear_console()
             display_cam.process('Build : q FEEDBACK LOOP')  
             display_cam.closedloop_TF('q')
-            display_cam.display_damp(aircraft.damp_closeloop_q[2], aircraft.damp_closeloop_q[1], aircraft.damp_closeloop_q[0])
             pause()
             
         elif answer['menu'] == 'Build: gamma FEEDBACK LOOP':

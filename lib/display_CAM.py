@@ -72,31 +72,34 @@ BG_BRIGHT_WHITE = "\033[107m"
 
 
 def display_time_process(func, *args, **kwargs):
+    # Si la fonction est une lambda, tente de récupérer son code source
+    func_name = func.__name__
+    if func_name == '<lambda>':
+        try:
+            func_code = inspect.getsource(func).strip()
+            # Extrait le contenu après le `lambda:` dans le code source
+            func_body = func_code.split(':', 1)[1].strip()
+            func_name = f"{func_body[:-1]}"
+        except Exception:
+            func_name = "<lambda> (func.__name__ unavailable)"
+                
     try:
         start_time = time.time()
         result = func(*args, **kwargs)  # Appelle la fonction/méthode avec les arguments
         end_time = time.time()
 
         execution_time = end_time - start_time
-        func_name = func.__name__
-
-        # Si la fonction est une lambda, tente de récupérer son code source
-        if func_name == '<lambda>':
-            try:
-                func_code = inspect.getsource(func).strip()
-                # Extrait le contenu après le `lambda:` dans le code source
-                func_body = func_code.split(':', 1)[1].strip()
-                func_name = f"{func_body[:-1]}"
-            except Exception:
-                func_name = "<lambda> (func.__name__ unavailable)"
 
         print(f"[{YELLOW}INFO{RESET}] - {BOLD}'{ITALIC}{func_name}{RESET}{BOLD}'{RESET} status : {GREEN}OK{RESET}")
         print(f"[{YELLOW}INFO{RESET}] - {BLUE}Processing time : {execution_time:.6f}s{RESET}")
         return result
-    except ValueError as err:
-        print(f"[{YELLOW}INFO{RESET}] - Process status : {RED}ERROR{RESET}")
+    
+    except Exception as err:
+        print(f"[{YELLOW}INFO{RESET}] - {BOLD}'{ITALIC}{func_name}{RESET}{BOLD}'{RESET} status : {RED}ERROR{RESET}")
         print(f"[{RED}ERROR{RESET}]\n{LIGHT_RED}{err}{RESET}")
         traceback.print_exc()  # Affiche la trace avec le message complet
+        sys.exit(1)
+        
 
 class Display_CAM:
     def __init__(self, control_aircraft_model):
@@ -256,70 +259,129 @@ Gamma à l'équilibre (gamma_eq):                      {self.CAM.gamma_eq:.6f}
 
         
     def transient_phase(self):
+
         print(f"""
 ####################### OSCILLATION MODES #######################
 
-    - Short period mode: 
-        >> Alpha : 
-        * Poles           :{self.CAM.sp_eigenvalues_alpha}
-        * Proper pulsation: {self.CAM.sp_wn_alpha} rad/s
-        * Damping ratio   : {self.CAM.sp_damping_alpha} 
-        >> Q : 
-        * Poles           :{self.CAM.sp_eigenvalues_q}
-        * Proper pulsation: {self.CAM.sp_wn_q} rad/s
-        * Damping ratio   : {self.CAM.sp_damping_q} 
-    
-    - Phugoid mode:
-        >> Gamma :
-        * Poles           :{self.CAM.phu_eigenvalues_g}
-        * Proper pulsation: {self.CAM.phu_wn_g} rad/s
-        * Damping ratio   : {self.CAM.phu_damping_g} 
-        >> V :
-        * Poles           :{self.CAM.phu_eigenvalues_v}
-        * Proper pulsation: {self.CAM.phu_wn_v} rad/s
-        * Damping ratio   : {self.CAM.phu_damping_v} 
-              
+{CYAN}- Short period mode:{RESET}
+    >> Alpha : 
+    * Poles           : {self.CAM.sp_eigenvalues_alpha}
+    * Proper pulsation: {self.CAM.sp_wn_alpha} rad/s
+    * Damping ratio   : {self.CAM.sp_damping_alpha} 
+    >> Q : 
+    * Poles           : {self.CAM.sp_eigenvalues_q}
+    * Proper pulsation: {self.CAM.sp_wn_q} rad/s
+    * Damping ratio   : {self.CAM.sp_damping_q} 
+        
+{CYAN}- Phugoid mode:{RESET}
+    >> Gamma :
+    * Poles           : {self.CAM.phu_eigenvalues_g}
+    * Proper pulsation: {self.CAM.phu_wn_g} rad/s
+    * Damping ratio   : {self.CAM.phu_damping_g} 
+    >> V :
+    * Poles           : {self.CAM.phu_eigenvalues_v}
+    * Proper pulsation: {self.CAM.phu_wn_v} rad/s
+    * Damping ratio   : {self.CAM.phu_damping_v} 
+                
 #################### STATE SPACE REPRESENTATION ##################
 
-    - Short period mode: 
-        >> Alpha    : \n{self.CAM.ss_sp_alpha}
-        >> Q        : \n{self.CAM.ss_sp_q}
-    
-    - Phugoid mode:
-        >> Gamma    : \n{self.CAM.ss_phu_g}
-        >> V        : \n{self.CAM.ss_phu_v}
-
-####################### TRANSFER FUNCTIONS #######################
-
-    - Short period mode:
-            - Alpha: \n{str(self.CAM.tf_sp_alpha)}
-            - q    : \n{str(self.CAM.tf_sp_q)}
+{CYAN}- Short period mode: {RESET}
+    >> Alpha:""") 
+        print('A:')
+        print(self.CAM.ss_sp_alpha.A, '\n')
             
-    - Phugoid mode:
-            - V     : \n{str(self.CAM.tf_phu_v)}
-            - Gamma : \n{str(self.CAM.tf_phu_g)}
+        print('B:')
+        print(self.CAM.ss_sp_alpha.B, '\n')
+            
+        print('C:')
+        print(self.CAM.ss_sp_alpha.C, '\n')
+        
+        print('D:')
+        print(self.CAM.ss_sp_alpha.D, '\n')
+    
+        print('    >> Q:') 
+        print('A:')
+        print(self.CAM.ss_sp_q.A, '\n')
+            
+        print('B:')
+        print(self.CAM.ss_sp_q.B, '\n')
+            
+        print('C:')
+        print(self.CAM.ss_sp_q.C, '\n')
+            
+        print('D:')
+        print(self.CAM.ss_sp_q.D, '\n')
 
+        print(f"""{CYAN}- Phugoid mode:{RESET}
+    >> Gamma:""")
+        print('A:')
+        print(self.CAM.ss_phu_g.A, '\n')
+            
+        print('B:')
+        print(self.CAM.ss_phu_g.B, '\n')
+            
+        print('C:')
+        print(self.CAM.ss_phu_g.C, '\n')
+            
+        print('D:')
+        print(self.CAM.ss_phu_g.D, '\n')
+    
+    
+        print('    >> V        :')
+        print('A:')
+        print(self.CAM.ss_phu_v.A, '\n')
+            
+        print('B:')
+        print(self.CAM.ss_phu_v.B, '\n')
+            
+        print('C:')
+        print(self.CAM.ss_phu_v.C, '\n')
+        
+        print('D:')
+        print(self.CAM.ss_phu_v.D, '\n')
+
+        print('####################### TRANSFER FUNCTIONS #######################')
+
+        print(f'{CYAN}- Short period mode:{RESET}')    
+        print('\n    - alpha:')
+                    
+        self.display_tf(self.CAM.tf_sp_alpha, 'sp_alpha') if self.CAM.tf_sp_alpha else "None"
+
+        print('\n    - q:')   
+                    
+        self.display_tf(self.CAM.tf_sp_q, 'sp_q') if self.CAM.tf_sp_q else "None"
+        
+        print(f'{CYAN}- Phugoid mode:{RESET}')   
+            
+        print('\n    - V:')
+        self.display_tf(self.CAM.tf_phu_v, 'phu_v') if self.CAM.tf_phu_v else "None"
+                    
+        print('\n    - Gamma :')
+        self.display_tf(self.CAM.tf_phu_g, 'phu_g') if self.CAM.tf_phu_g else "None"
+
+        print(f"""
 ########################## SETTLING TIME #########################
 
-    - Short period mode:
-        - Alpha Settling time   : {self.CAM.Tsa}
-        - Q Settling time       : {self.CAM.Tsq}
-        
-    - Phugoid mode:
-        - V Settling time       : {self.CAM.Tsv}
-        - Gamma Settling time   : {self.CAM.Tsg}
-        
+{CYAN}- Short period mode:{RESET}
+    - Alpha Settling time   : {self.CAM.Tsa}
+    - Q Settling time       : {self.CAM.Tsq}
+    
+{CYAN}- Phugoid mode:{RESET}
+    - V Settling time       : {self.CAM.Tsv}
+    - Gamma Settling time   : {self.CAM.Tsg}
+                
 ########################## GAIN with SISOPY31 #########################
 
-    - Short period mode:
-            - Alpha gain   : {self.CAM.gain_k_sp_alpha}
-            - Q gain       : {self.CAM.gain_k_sp_q}
+{CYAN}- Short period mode:{RESET}
+    - Alpha gain   : {self.CAM.gain_k_sp_alpha}
+    - Q gain       : {self.CAM.gain_k_sp_q}
 
-    - Phugoid mode:
-            - V gain       : {self.CAM.gain_k_phu_v}
-            - Gamma gain   : {self.CAM.gain_k_phu_g}
-        
-              """)
+{CYAN}- Phugoid mode:{RESET}
+    - V gain       : {self.CAM.gain_k_phu_v}
+    - Gamma gain   : {self.CAM.gain_k_phu_g}
+            """)
+
+
 
     def closedloop_TF(self, label:str):
         print(f"""
@@ -340,7 +402,7 @@ Gamma à l'équilibre (gamma_eq):                      {self.CAM.gamma_eq:.6f}
             print("\n-------- Close Transfer Function ---------")
             self.display_tf(self.CAM.Closed_Tf_ss_q,'q')
             print("\n--------------- Damp Close Loop q ---------------")
-            self.display_damp(self.CAM.damp_closedloop_sys_q[2], self.CAM.damp_closedloop_sys_q[1], self.CAM.damp_closedloop_sys_q[0])
+            self.display_damp(self.CAM.damp_closeloop_sys_q[2], self.CAM.damp_closeloop_sys_q[1], self.CAM.damp_closeloop_sys_q[0])
 
             
         if label == 'gamma':

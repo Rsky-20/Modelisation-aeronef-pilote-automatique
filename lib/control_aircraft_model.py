@@ -480,10 +480,10 @@ class ControlAircraftModel:
 
 
             #we plot the result
-            fig, ax = plt.subplots()
+            fig1, ax1 = plt.subplots()
             Yqol, Tqol = control.matlab.step(self.TF_q, np.arange(0, 5, 0.01))
             plot_step_response(
-                ax=ax,
+                ax=ax1,
                 T1=Tqol,
                 Y1=Yqol,
                 labels=[r"$q$"],
@@ -496,16 +496,16 @@ class ControlAircraftModel:
             self.closedloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
             
             with contextlib.redirect_stdout(io.StringIO()):
-                self.damp_closeloop_q = control.matlab.damp(self.closedloop_sys_q)
+                self.damp_closeloop_sys_q = control.matlab.damp(self.closedloop_sys_q)
             
             self.Closed_Tf_ss_q = control.tf(self.closedloop_sys_q)
 
-            fig, ax = plt.subplots()
+            fig2, ax2 = plt.subplots()
 
             Yqcl, Tqcl = control.matlab.step(self.Closed_Tf_ss_q, np.arange(0, 5, 0.01))
 
             plot_step_response(
-                ax=ax,
+                ax=ax2,
                 T1=Tqcl,
                 Y1=Yqcl,
                 labels=[r"$q/q_c$"],
@@ -534,19 +534,20 @@ class ControlAircraftModel:
                 else:
                     plt.show()
                     
-            tau = (2 / self.damp_closeloop_q[0][-1])+0.001
             
-            tf_washout_filter = control.tf([tau, 0], [tau, 1])
-            tf_washout_filter_closed = control.feedback(self.gain_Kr, self.TF_q * tf_washout_filter)
-
+            tau = (2 / self.damp_closeloop_sys_q[0][-1])+0.001  #we define tau with the lecture equation
+            tf_washout_filter = control.tf([tau, 0], [tau, 1]) #we create the tf of the filter 
+            tf_washout_filter_closed = control.feedback(self.gain_Kr, self.TF_q * tf_washout_filter) #and the feed back associate to it
             C_alpha = [0, 1, 0, 0, 0]
             ss_alpha = control.ss(self.matrix_A_new, self.matrix_B_new, C_alpha, 0)
 
+            #definition of the 3 feed backs 
             tf_alpha = control.tf(ss_alpha)
             tf_alpha_washout = control.series(1 / self.gain_Kr, tf_washout_filter_closed, tf_alpha)
             tf_alpha_no_washout = control.series(1 / self.gain_Kr, control.feedback(self.gain_Kr, self.TF_q), tf_alpha)
             t = np.arange(0, 15, 0.01)
 
+            #the step repsonse 
             y_alpha, t_alpha = control.matlab.step(tf_alpha, t)
             y_alpha_no_washout, t_alpha_no_washout = control.matlab.step(tf_alpha_no_washout, t)
             y_alpha_washout, t_alpha_washout = control.matlab.step(tf_alpha_washout, t)
@@ -564,7 +565,7 @@ class ControlAircraftModel:
                     
 
         elif label == 'gamma':
-            # Calcul pour gamma
+            #we use the state space représentation of q
             self.matrix_C_gamma = np.zeros((5, 1))
             self.matrix_C_gamma[0] = 1  # 0 correspond à l'index de gamma
             self.matrix_C_gamma = self.matrix_C_gamma.T
@@ -573,6 +574,22 @@ class ControlAircraftModel:
                 self.sys_gamma = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_gamma, 0)
                 self.TF_gamma = control.tf(minreal(self.sys_gamma))
                 
+            
+            fig1, ax1 = plt.subplots()
+            Y_gamma_ol, T_gamma_ol = control.matlab.step(self.TF_gamma, np.arange(0, 5, 0.01))
+            plot_step_response(
+                ax=ax1,
+                T1=T_gamma_ol,
+                Y1=Y_gamma_ol,
+                labels=[r"$gamma$"],
+                title=r"Step response $gamma$ on openloop",
+                xlabel="Time (s)",
+                ylabel=r"$gamma$ (rad/s)",
+                fig_name="Step_Response_gamma_ol",
+            )
+
+            
+            #calcule of the gamma stape space representation 
             self.gain_Kg = 16.4 #sisopy31.sisotool(self.TF_gamma) #16.4 #sisopy31.sisotool(1 * minreal(self.TF_gamma))
             self.matrix_A_gamma = self.matrix_A_q - self.gain_Kg * np.dot(self.matrix_B_q, self.matrix_C_gamma)
             self.matrix_B_gamma = self.gain_Kg * self.matrix_B_q
@@ -585,12 +602,13 @@ class ControlAircraftModel:
             
             self.Closed_Tf_ss_gamma = control.tf(self.closedloop_sys_gamma)
             
-            fig, ax = plt.subplots()
+            #and plot it
+            fig2, ax2 = plt.subplots()
             
             Y_gamma_cl, T_gamma_cl = control.matlab.step(self.Closed_Tf_ss_gamma, np.arange(0, 5, 0.01))
 
             plot_step_response(
-                ax=ax,
+                ax=ax2,
                 T1=T_gamma_cl,
                 Y1=Y_gamma_cl,
                 labels=[r"$gamma/gamma_c$"],
@@ -601,12 +619,26 @@ class ControlAircraftModel:
             )
 
         elif label == 'z':
-            # Calcul pour z
+            # we do exactly the same for z
             self.matrix_C_z = np.zeros((5, 1))
-            self.matrix_C_z[4] = 1  # 4 correspond à l'index de z
+            self.matrix_C_z[4] = 1  # 4 correspond to the z index
             self.matrix_C_z = self.matrix_C_z.T
             self.sys_z = control.ss(self.matrix_A_gamma, self.matrix_B_gamma, self.matrix_C_z, 0)
             self.TF_z = control.ss2tf(self.sys_z)
+            
+            fig1, ax1 = plt.subplots()
+            Y_z_ol, T_z_ol = control.matlab.step(self.TF_z, np.arange(0, 5, 0.01))
+            plot_step_response(
+                ax=ax1,
+                T1=T_z_ol,
+                Y1=Y_z_ol,
+                labels=[r"$z$"],
+                title=r"Step response $z$ on openloop",
+                xlabel="Time (s)",
+                ylabel=r"$z$ (rad/s)",
+                fig_name="Step_Response_z_ol",
+            )            
+            
             self.gain_Kz = 0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
             self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z)
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
@@ -619,10 +651,10 @@ class ControlAircraftModel:
 
             self.Closed_Tf_ss_z = control.tf(self.closedloop_sys_z)
             
-            fig, ax = plt.subplots()
+            fig2, ax2 = plt.subplots()
             Y_z_cl, T_z_cl = control.matlab.step(self.Closed_Tf_ss_z, np.arange(0, 5, 0.01))
             plot_step_response(
-                ax=ax,
+                ax=ax2,
                 T1=T_z_cl,
                 Y1=Y_z_cl,
                 labels=[r"$z/z_c$"],
@@ -633,7 +665,7 @@ class ControlAircraftModel:
             )
             
             #self.closed_state_space_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, self.matrix_D_z)
-
+    
     def saturation(self):
         def f(csat, TF, alpha_max):
             response, _ = control.matlab.step(csat * TF)
