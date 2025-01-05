@@ -36,7 +36,7 @@ if not os.path.exists(OUTPUT_FIG_PATH):
     os.makedirs(OUTPUT_FIG_PATH)  # Crée les répertoires manquants
             
 class ControlAircraftModel:
-    def __init__(self, name='MIRAGE III class'):
+    def __init__(self, name='MIRAGE_III_class'):
         self.name = name
         self.save_fig = False
         # Constants
@@ -76,11 +76,10 @@ class ControlAircraftModel:
             self.F_delta = self.f_delta * self.lt
             self.F = self.f * self.lt
             
-            self.Q = 0.5 * self.rho * pow(self.V_a, 2)
-
-            #X,Y bras de levier distance entre F et G :  X_g - X_f
             self.X =  -(self.f * self.lt - self.c * self.lt)
             self.Y =  -(self.f_delta - self.c) * self.lt
+            
+            self.Q = 0.5 * self.rho * pow(self.V_a, 2)
 
             self.V_eq = self.V_a #car on est pas loin du point d'équilibre 
         else:
@@ -135,6 +134,11 @@ class ControlAircraftModel:
     #############################################
     #   Aircraft Longitudinal Dynamics
     #############################################
+    def compute_new_X_Y(self):
+        #X,Y bras de levier distance entre F et G :  X_g - X_f
+        self.X =  -(self.f * self.lt - self.c * self.lt)
+        self.Y =  -(self.f_delta - self.c) * self.lt
+    
     
     def compute_F_eq(self, rho, V_eq, S, C_x_eq, alpha_eq):
         return (0.5 * rho * pow(V_eq, 2) * S * C_x_eq) / (np.cos(alpha_eq))
@@ -365,7 +369,7 @@ class ControlAircraftModel:
         ax.plot([0, T2[-1]], [0.95 * Y2[-1], 0.95 * Y2[-1]], 'k--', lw=1)
         ax.minorticks_on()
         ax.grid(True)
-        ax.set_title(title)
+        ax.set_title(f'{self.name} - '+title)
         ax.set_xlabel(xlabel)
         ax.set_ylabel(ylabel)
         ax.legend()
@@ -416,7 +420,7 @@ class ControlAircraftModel:
             title=r"Step response $\alpha/\delta_m$ et $q/\delta_m$",
             xlabel="Time (s)",
             ylabel=r"$\alpha$ (rad) & $q$ (rad/s)",
-            fig_name="Short_Period_Step_Response"
+            fig_name=f'{self.name} - '+"Short_Period_Step_Response"
         )
 
         # Tracé des réponses en échelon pour phugoïde
@@ -430,7 +434,7 @@ class ControlAircraftModel:
             title=r"Step response $V/\delta_m$ et $\gamma/\delta_m$",
             xlabel="Time (s)",
             ylabel=r"$V$ (m/s) & $\gamma$ (rad)",
-            fig_name="Phugoid_Step_Response"
+            fig_name=f'{self.name} - '+"Phugoid_Step_Response"
         )
         
         _, _, self.Tsa = step_info(Ta, Ya)
@@ -448,7 +452,7 @@ class ControlAircraftModel:
                 ax.plot([0, T1[-1]], [0.95 * Y1[-1], 0.95 * Y1[-1]], 'k--', lw=1)
                 ax.minorticks_on()
                 ax.grid(True, which='both')
-                ax.set_title(title)
+                ax.set_title(f'{self.name} - '+title)
                 ax.set_xlabel(xlabel)
                 ax.set_ylabel(ylabel)
                 ax.legend()
@@ -473,7 +477,7 @@ class ControlAircraftModel:
         
         
             #close loop matrix definition
-            self.gain_Kr = -0.20954#-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
+            self.gain_Kr = sisopy31.sisotool(1 * minreal(self.TF_q)) #-0.20954#-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
             self.matrix_A_q = self.matrix_A_new - (self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q))
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
@@ -490,7 +494,7 @@ class ControlAircraftModel:
                 title=r"Step response open loop $q$",
                 xlabel="Time (s)",
                 ylabel=r"$q$ (rad/s)",
-                fig_name="Step_Response_open_loop_q",
+                fig_name=f'{self.name} - '+"Step_Response_open_loop_q",
             )
             
             self.closedloop_sys_q = control.ss(self.matrix_A_q, self.matrix_B_q, self.matrix_C_q, 0)  # Create the state space system
@@ -512,7 +516,7 @@ class ControlAircraftModel:
                 title=r"Step response $q/q_c$",
                 xlabel="Time (s)",
                 ylabel=r"$q$ (rad/s)",
-                fig_name="Step_Response_q_qc",
+                fig_name=f'{self.name} - '+"Step_Response_q_qc",
             )
             
             def plot_step_response_washout(t, y_alpha, y_alpha_no_washout, y_alpha_washout, title, xlabel, ylabel, fig_name=None):
@@ -520,7 +524,7 @@ class ControlAircraftModel:
                 plt.plot(t, y_alpha, label="Alpha alpha", color="red")
                 plt.plot(t, y_alpha_no_washout, label="Alpha alpha no washout", color="blue")
                 plt.plot(t, y_alpha_washout, linestyle=(0, (5, 10)), color="green", label="Alpha alpha washout")
-                plt.title(title)
+                plt.title(f'{self.name} - '+title)
                 plt.grid()
                 plt.legend()
                 plt.xlabel(xlabel)
@@ -560,7 +564,7 @@ class ControlAircraftModel:
                 title="Washout filter",
                 xlabel="Time (s)",
                 ylabel=r"$\alpha$",
-                fig_name="Washout_Filter_Alpha",
+                fig_name=f'{self.name} - '+"Washout_Filter_Alpha",
             )
                     
 
@@ -585,7 +589,7 @@ class ControlAircraftModel:
                 title=r"Step response $gamma$ on openloop",
                 xlabel="Time (s)",
                 ylabel=r"$gamma$ (rad/s)",
-                fig_name="Step_Response_gamma_ol",
+                fig_name=f'{self.name} - '+"Step_Response_gamma_ol",
             )
 
             
@@ -615,7 +619,7 @@ class ControlAircraftModel:
                 title=r"Step response $gamma/gamma_c$",
                 xlabel="Time (s)",
                 ylabel=r"$gamma$ (rad/s)",
-                fig_name="Step_Response_gamma_gammac",
+                fig_name=f'{self.name} - '+"Step_Response_gamma_gammac",
             )
 
         elif label == 'z':
@@ -635,11 +639,11 @@ class ControlAircraftModel:
                 labels=[r"$z$"],
                 title=r"Step response $z$ on openloop",
                 xlabel="Time (s)",
-                ylabel=r"$z$ (rad/s)",
-                fig_name="Step_Response_z_ol",
+                ylabel=r"$z$ (m)",
+                fig_name=f'{self.name} - '+"Step_Response_z_ol",
             )            
             
-            self.gain_Kz = sisopy31.sisotool(1 * minreal(self.TF_z)) # 0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z)) #0.0010 #sisopy31.sisotool(1 * minreal(self.TF_z))
+            self.gain_Kz = 0.00273  #sisopy31.sisotool(1 * minreal(self.TF_z))
             self.matrix_A_z = self.matrix_A_gamma - self.gain_Kz * np.dot(self.matrix_B_gamma, self.matrix_C_z)
             self.matrix_B_z = self.gain_Kz * self.matrix_B_gamma
             self.matrix_D_z = self.gain_Kz * self.matrix_D
@@ -661,7 +665,7 @@ class ControlAircraftModel:
                 title=r"Step response $z/z_c$",
                 xlabel="Time (s)",
                 ylabel=r"$z$ (rad/s)",
-                fig_name="Step_Response_z_zc",
+                fig_name=f'{self.name} - '+"Step_Response_z_zc",
             )
             
             #self.closed_state_space_z = control.ss(self.matrix_A_z, self.matrix_B_z, self.matrix_C_z, self.matrix_D_z)
@@ -705,9 +709,6 @@ class ControlAircraftModel:
         self.gamma_opt_2 = alpha_max/alpha_max_step
 
         
-        
-        
-
     def ft_to_m(self, feet):
         """
         Convert a value in feet to meters.
@@ -721,8 +722,4 @@ class ControlAircraftModel:
         meters = feet * 0.3048
         return meters
     
-    
-
-
-
-        
+       
