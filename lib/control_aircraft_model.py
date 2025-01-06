@@ -477,7 +477,7 @@ class ControlAircraftModel:
         
         
             #close loop matrix definition
-            self.gain_Kr = sisopy31.sisotool(1 * minreal(self.TF_q)) #-0.20954#-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
+            self.gain_Kr = -0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q)) #-0.20954 #sisopy31.sisotool(1 * minreal(self.TF_q))
             self.matrix_A_q = self.matrix_A_new - (self.gain_Kr * np.dot(self.matrix_B_new, self.matrix_C_q))
             self.matrix_B_q = self.gain_Kr * self.matrix_B_new
             self.matrix_D_q = self.gain_Kr * self.matrix_D
@@ -515,7 +515,7 @@ class ControlAircraftModel:
                 labels=[r"$q/q_c$"],
                 title=r"Step response $q/q_c$",
                 xlabel="Time (s)",
-                ylabel=r"$q$ (rad/s)",
+                ylabel=r"$q$",
                 fig_name=f'{self.name} - '+"Step_Response_q_qc",
             )
             
@@ -618,7 +618,7 @@ class ControlAircraftModel:
                 labels=[r"$gamma/gamma_c$"],
                 title=r"Step response $gamma/gamma_c$",
                 xlabel="Time (s)",
-                ylabel=r"$gamma$ (rad/s)",
+                ylabel=r"$gamma$",
                 fig_name=f'{self.name} - '+"Step_Response_gamma_gammac",
             )
 
@@ -664,7 +664,7 @@ class ControlAircraftModel:
                 labels=[r"$z/z_c$"],
                 title=r"Step response $z/z_c$",
                 xlabel="Time (s)",
-                ylabel=r"$z$ (rad/s)",
+                ylabel=r"$z$",
                 fig_name=f'{self.name} - '+"Step_Response_z_zc",
             )
             
